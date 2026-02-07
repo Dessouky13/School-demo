@@ -41,6 +41,15 @@ interface AgentCapability {
 }
 
 const LandingPage: React.FC = () => {
+  // Language
+  const [language, setLanguage] = useState<'en' | 'ar'>(() => {
+    if (typeof window === 'undefined') return 'en';
+    return (window.localStorage.getItem('seekers-lang') as 'en' | 'ar') || 'en';
+  });
+  const isArabic = language === 'ar';
+  const t = (en: string, ar: string) => (isArabic ? ar : en);
+  const currency = isArabic ? 'ج.م' : 'EGP';
+
   // Demo 1: Chatbot State
   const [chatMessages, setChatMessages] = useState([
     { role: 'bot', text: 'Welcome to our International School Admissions AI. How can I assist you today?' }
@@ -58,29 +67,65 @@ const LandingPage: React.FC = () => {
   const [animatedStats, setAnimatedStats] = useState({ collected: 0, pending: 0, students: 0 });
 
   // Mock CRM Data
-  const [students] = useState<Student[]>([
-    { id: '1', name: 'أحمد محمد علي', grade: 'الصف العاشر', totalFees: 45000, paid: 45000, remaining: 0, status: 'paid', phone: '01012345678', lastPayment: '2024-01-15' },
-    { id: '2', name: 'سارة محمود حسن', grade: 'الصف الحادي عشر', totalFees: 48000, paid: 35500, remaining: 12500, status: 'overdue', phone: '01098765432' },
-    { id: '3', name: 'ياسين ابراهيم خالد', grade: 'الصف التاسع', totalFees: 42000, paid: 42000, remaining: 0, status: 'paid', phone: '01123456789', lastPayment: '2024-01-20' },
-    { id: '4', name: 'ليلى يوسف أحمد', grade: 'الصف العاشر', totalFees: 45000, paid: 40000, remaining: 5000, status: 'partial', phone: '01234567890' },
-    { id: '5', name: 'محمد عبدالله سعيد', grade: 'الصف الثاني عشر', totalFees: 52000, paid: 26000, remaining: 26000, status: 'overdue', phone: '01087654321' },
-    { id: '6', name: 'نور الهدى فاروق', grade: 'الصف التاسع', totalFees: 42000, paid: 42000, remaining: 0, status: 'paid', phone: '01198765432', lastPayment: '2024-02-01' },
-  ]);
+  const students = useMemo<Student[]>(
+    () =>
+      isArabic
+        ? [
+            { id: '1', name: 'أحمد محمد علي', grade: 'الصف العاشر', totalFees: 45000, paid: 45000, remaining: 0, status: 'paid', phone: '01012345678', lastPayment: '2024-01-15' },
+            { id: '2', name: 'سارة محمود حسن', grade: 'الصف الحادي عشر', totalFees: 48000, paid: 35500, remaining: 12500, status: 'overdue', phone: '01098765432' },
+            { id: '3', name: 'ياسين ابراهيم خالد', grade: 'الصف التاسع', totalFees: 42000, paid: 42000, remaining: 0, status: 'paid', phone: '01123456789', lastPayment: '2024-01-20' },
+            { id: '4', name: 'ليلى يوسف أحمد', grade: 'الصف العاشر', totalFees: 45000, paid: 40000, remaining: 5000, status: 'partial', phone: '01234567890' },
+            { id: '5', name: 'محمد عبدالله سعيد', grade: 'الصف الثاني عشر', totalFees: 52000, paid: 26000, remaining: 26000, status: 'overdue', phone: '01087654321' },
+            { id: '6', name: 'نور الهدى فاروق', grade: 'الصف التاسع', totalFees: 42000, paid: 42000, remaining: 0, status: 'paid', phone: '01198765432', lastPayment: '2024-02-01' },
+          ]
+        : [
+            { id: '1', name: 'Ahmed Mohamed Ali', grade: 'Grade 10', totalFees: 45000, paid: 45000, remaining: 0, status: 'paid', phone: '01012345678', lastPayment: '2024-01-15' },
+            { id: '2', name: 'Sara Mahmoud Hassan', grade: 'Grade 11', totalFees: 48000, paid: 35500, remaining: 12500, status: 'overdue', phone: '01098765432' },
+            { id: '3', name: 'Yassin Ibrahim Khaled', grade: 'Grade 9', totalFees: 42000, paid: 42000, remaining: 0, status: 'paid', phone: '01123456789', lastPayment: '2024-01-20' },
+            { id: '4', name: 'Laila Youssef Ahmed', grade: 'Grade 10', totalFees: 45000, paid: 40000, remaining: 5000, status: 'partial', phone: '01234567890' },
+            { id: '5', name: 'Mohamed Abdallah Said', grade: 'Grade 12', totalFees: 52000, paid: 26000, remaining: 26000, status: 'overdue', phone: '01087654321' },
+            { id: '6', name: 'Nour El Hoda Farouk', grade: 'Grade 9', totalFees: 42000, paid: 42000, remaining: 0, status: 'paid', phone: '01198765432', lastPayment: '2024-02-01' },
+          ],
+    [isArabic]
+  );
 
-  const [transactions] = useState<Transaction[]>([
-    { id: '1', type: 'IN', description: 'قسط أحمد محمد علي', amount: 15000, date: '2024-01-15', method: 'نقدي' },
-    { id: '2', type: 'OUT', description: 'رواتب شهر يناير', amount: 85000, date: '2024-01-28', method: 'تحويل بنكي' },
-    { id: '3', type: 'IN', description: 'قسط سارة محمود حسن', amount: 12000, date: '2024-01-20', method: 'فيزا' },
-    { id: '4', type: 'OUT', description: 'فواتير المرافق', amount: 12500, date: '2024-01-25', method: 'شيك' },
-    { id: '5', type: 'IN', description: 'رسوم الباص', amount: 45000, date: '2024-02-01', method: 'نقدي' },
-  ]);
+  const transactions = useMemo<Transaction[]>(
+    () =>
+      isArabic
+        ? [
+            { id: '1', type: 'IN', description: 'قسط أحمد محمد علي', amount: 15000, date: '2024-01-15', method: 'نقدي' },
+            { id: '2', type: 'OUT', description: 'رواتب شهر يناير', amount: 85000, date: '2024-01-28', method: 'تحويل بنكي' },
+            { id: '3', type: 'IN', description: 'قسط سارة محمود حسن', amount: 12000, date: '2024-01-20', method: 'فيزا' },
+            { id: '4', type: 'OUT', description: 'فواتير المرافق', amount: 12500, date: '2024-01-25', method: 'شيك' },
+            { id: '5', type: 'IN', description: 'رسوم الباص', amount: 45000, date: '2024-02-01', method: 'نقدي' },
+          ]
+        : [
+            { id: '1', type: 'IN', description: 'Ahmed Mohamed Ali tuition', amount: 15000, date: '2024-01-15', method: 'Cash' },
+            { id: '2', type: 'OUT', description: 'January payroll', amount: 85000, date: '2024-01-28', method: 'Bank transfer' },
+            { id: '3', type: 'IN', description: 'Sara Mahmoud Hassan tuition', amount: 12000, date: '2024-01-20', method: 'Visa' },
+            { id: '4', type: 'OUT', description: 'Utilities invoices', amount: 12500, date: '2024-01-25', method: 'Cheque' },
+            { id: '5', type: 'IN', description: 'Bus fees', amount: 45000, date: '2024-02-01', method: 'Cash' },
+          ],
+    [isArabic]
+  );
 
-  const [teachers] = useState<Teacher[]>([
-    { id: '1', name: 'أ/ محمد سعيد إبراهيم', subject: 'لغة عربية', salary: 15000, paid: 15000, status: 'paid' },
-    { id: '2', name: 'أ/ منى أحمد عبدالله', subject: 'رياضيات', salary: 18500, paid: 0, status: 'pending' },
-    { id: '3', name: 'Mr. John Williams', subject: 'English', salary: 22000, paid: 22000, status: 'paid' },
-    { id: '4', name: 'Dr. Sarah Johnson', subject: 'Science', salary: 25000, paid: 25000, status: 'paid' },
-  ]);
+  const teachers = useMemo<Teacher[]>(
+    () =>
+      isArabic
+        ? [
+            { id: '1', name: 'أ/ محمد سعيد إبراهيم', subject: 'لغة عربية', salary: 15000, paid: 15000, status: 'paid' },
+            { id: '2', name: 'أ/ منى أحمد عبدالله', subject: 'رياضيات', salary: 18500, paid: 0, status: 'pending' },
+            { id: '3', name: 'Mr. John Williams', subject: 'English', salary: 22000, paid: 22000, status: 'paid' },
+            { id: '4', name: 'Dr. Sarah Johnson', subject: 'Science', salary: 25000, paid: 25000, status: 'paid' },
+          ]
+        : [
+            { id: '1', name: 'Mohamed Saeed Ibrahim', subject: 'Arabic', salary: 15000, paid: 15000, status: 'paid' },
+            { id: '2', name: 'Mona Ahmed Abdallah', subject: 'Mathematics', salary: 18500, paid: 0, status: 'pending' },
+            { id: '3', name: 'John Williams', subject: 'English', salary: 22000, paid: 22000, status: 'paid' },
+            { id: '4', name: 'Sarah Johnson', subject: 'Science', salary: 25000, paid: 25000, status: 'paid' },
+          ],
+    [isArabic]
+  );
 
   // Agentic Application State
   const [dreamIdea, setDreamIdea] = useState('');
@@ -91,14 +136,23 @@ const LandingPage: React.FC = () => {
   const [isMobile, setIsMobile] = useState(false);
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
 
-  const agentCapabilities: AgentCapability[] = [
-    { id: 'data', icon: 'database', name: 'Data Analysis', description: 'Process and analyze large datasets automatically' },
-    { id: 'chat', icon: 'chat', name: 'Smart Chat', description: 'Natural language understanding and responses' },
-    { id: 'automation', icon: 'bolt', name: 'Task Automation', description: 'Automate repetitive workflows and tasks' },
-    { id: 'notifications', icon: 'notifications', name: 'Smart Alerts', description: 'Intelligent notification system' },
-    { id: 'integration', icon: 'hub', name: 'API Integration', description: 'Connect with external services seamlessly' },
-    { id: 'reports', icon: 'assessment', name: 'Auto Reports', description: 'Generate comprehensive reports automatically' },
-  ];
+  const agentCapabilities: AgentCapability[] = isArabic
+    ? [
+        { id: 'data', icon: 'database', name: 'تحليل البيانات', description: 'معالجة وتحليل كميات كبيرة من البيانات تلقائياً' },
+        { id: 'chat', icon: 'chat', name: 'شات ذكي', description: 'فهم اللغة الطبيعية والردود الذكية' },
+        { id: 'automation', icon: 'bolt', name: 'أتمتة المهام', description: 'أتمتة العمليات المتكررة والمهام' },
+        { id: 'notifications', icon: 'notifications', name: 'تنبيهات ذكية', description: 'نظام تنبيهات ذكي ومترابط' },
+        { id: 'integration', icon: 'hub', name: 'تكامل API', description: 'ربط مع الخدمات الخارجية بسهولة' },
+        { id: 'reports', icon: 'assessment', name: 'تقارير تلقائية', description: 'إنشاء تقارير شاملة تلقائياً' },
+      ]
+    : [
+        { id: 'data', icon: 'database', name: 'Data Analysis', description: 'Process and analyze large datasets automatically' },
+        { id: 'chat', icon: 'chat', name: 'Smart Chat', description: 'Natural language understanding and responses' },
+        { id: 'automation', icon: 'bolt', name: 'Task Automation', description: 'Automate repetitive workflows and tasks' },
+        { id: 'notifications', icon: 'notifications', name: 'Smart Alerts', description: 'Intelligent notification system' },
+        { id: 'integration', icon: 'hub', name: 'API Integration', description: 'Connect with external services seamlessly' },
+        { id: 'reports', icon: 'assessment', name: 'Auto Reports', description: 'Generate comprehensive reports automatically' },
+      ];
 
   // Animated counter effect
   useEffect(() => {
@@ -120,6 +174,23 @@ const LandingPage: React.FC = () => {
 
     return () => clearInterval(timer);
   }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    window.localStorage.setItem('seekers-lang', language);
+    document.documentElement.lang = language === 'ar' ? 'ar' : 'en';
+    document.documentElement.dir = language === 'ar' ? 'rtl' : 'ltr';
+    setChatMessages([
+      {
+        role: 'bot',
+        text: language === 'ar'
+          ? 'أهلًا! معاك مساعد القبول للمدرسة. أقدر أساعدك في إيه؟'
+          : 'Welcome to our International School Admissions AI. How can I assist you today?'
+      }
+    ]);
+    setChatInput('');
+    setIsBotTyping(false);
+  }, [language]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -171,19 +242,20 @@ const LandingPage: React.FC = () => {
         },
         body: JSON.stringify({
           chatInput: userMsg,
-          sessionId: "presentation-demo-session"
+          sessionId: "presentation-demo-session",
+          language: isArabic ? 'ar' : 'en'
         }),
       });
 
       if (!response.ok) throw new Error('Network response was not ok');
 
       const data = await response.json();
-      const botResponseText = typeof data === 'string' ? data : (data.output || data.text || data.response || "I've received your request and notified the admissions team via WhatsApp.");
+      const botResponseText = typeof data === 'string' ? data : (data.output || data.text || data.response || t("I've received your request and notified the admissions team via WhatsApp.", 'تم استلام طلبك وتم إخطار فريق القبول عبر واتساب.'));
 
       setChatMessages(prev => [...prev, { role: 'bot', text: botResponseText }]);
     } catch (error) {
       console.error("Chat error:", error);
-      setChatMessages(prev => [...prev, { role: 'bot', text: "لقد تم تسجيل طلبك وسيتم التواصل معك عبر الواتساب فوراً." }]);
+      setChatMessages(prev => [...prev, { role: 'bot', text: t('Your request has been recorded and we will contact you on WhatsApp shortly.', 'تم تسجيل طلبك وسيتم التواصل معك عبر الواتساب فوراً.') }]);
     } finally {
       setIsBotTyping(false);
     }
@@ -268,7 +340,7 @@ const LandingPage: React.FC = () => {
   );
 
   return (
-    <div className="min-h-screen text-slate-100">
+    <div className="min-h-screen text-slate-100" dir={isArabic ? 'rtl' : 'ltr'}>
       {/* Dynamic Background with Floating Particles */}
       <div className="fixed inset-0 pointer-events-none z-0">
         <div className="hidden sm:block absolute top-[5%] left-[10%] w-[50vw] h-[50vw] bg-primary/5 blur-[120px] rounded-full animate-glow-pulse animate-morph"></div>
@@ -280,37 +352,49 @@ const LandingPage: React.FC = () => {
       {/* Floating Header */}
       <div className="fixed top-6 left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-7xl z-50">
         <nav className="h-20 md:h-24 flex items-center justify-between px-6 md:px-12 bg-surface-dark/40 backdrop-blur-3xl border border-white/10 rounded-[2rem] shadow-2xl animate-slide-up hover-glow">
-          <Logo size={360} showText={false} className="!items-start scale-75 sm:scale-100 origin-left" />
+          <Logo size={460} showText={false} className="!items-start" />
           <div className="hidden lg:flex items-center gap-10">
-            {['Solutions', 'Process', 'Finance', 'Agentic-Future'].map((item, idx) => (
+            {[
+              { id: 'solutions', label: t('Solutions', 'الحلول') },
+              { id: 'process', label: t('Process', 'العمليات') },
+              { id: 'finance', label: t('Finance', 'التمويل') },
+              { id: 'agentic-future', label: t('Agentic Future', 'الذكاء الوكيلي') }
+            ].map((item, idx) => (
               <a
-                key={item}
-                href={`#${item.toLowerCase()}`}
-                onClick={scrollToSection(item.toLowerCase())}
+                key={item.id}
+                href={`#${item.id}`}
+                onClick={scrollToSection(item.id)}
                 className={`text-[11px] font-black text-slate-400 hover:text-primary transition-all uppercase tracking-[0.4em] hover-scale stagger-${idx + 1}`}
               >
-                {item.replace('-', ' ')}
+                {item.label}
               </a>
             ))}
           </div>
-          <div className="flex items-center gap-4" />
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setLanguage(isArabic ? 'en' : 'ar')}
+              className="px-4 py-2 rounded-full border border-primary/30 text-[10px] font-black uppercase tracking-[0.25em] text-primary hover:bg-primary/10 transition-all"
+            >
+              {isArabic ? 'English' : 'العربية'}
+            </button>
+          </div>
         </nav>
       </div>
 
       {/* Hero Section with Enhanced Animations */}
       <section className="relative z-10 max-w-7xl mx-auto px-6 pt-48 md:pt-64 pb-24 text-center">
         <div className="animate-slide-up">
-          <p className="text-primary text-[10px] md:text-xs font-black uppercase tracking-[0.5em] mb-6 animate-shimmer">// SEEKERS AI FOR EDUCATION</p>
-          <h1 className="text-4xl md:text-7xl lg:text-8xl font-extrabold tracking-tighter leading-[1.1] mb-8">
-            Transform Your School's <br />
-            <span className="gradient-text-animated italic">Revenue & Efficiency</span>
+          <p className="text-primary text-[10px] md:text-xs font-black uppercase tracking-[0.5em] mb-6 animate-shimmer">{t('// SEEKERS AI FOR EDUCATION', '// سيكرز للذكاء الاصطناعي في التعليم')}</p>
+          <h1 className="text-4xl md:text-7xl lg:text-8xl font-extrabold tracking-tight leading-[1.25] mb-8 pb-2 overflow-visible">
+            {t("Transform Your School's", 'طوّر مدرستك')} <br />
+            <span className="gradient-text-animated italic">{t('Revenue & Efficiency', 'الإيرادات والكفاءة')}</span>
           </h1>
           <p className="text-lg md:text-2xl text-slate-400 font-medium max-w-3xl mx-auto mb-12 leading-relaxed animate-slide-up stagger-2">
-            AI-Powered Solutions for International Schools | Proven Results with Leading Global Institutions
+            {t('AI-Powered Solutions for International Schools | Proven Results with Leading Global Institutions', 'حلول ذكاء اصطناعي للمدارس الدولية | نتائج مثبتة مع مؤسسات عالمية')}
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-6 animate-slide-up stagger-3">
             <button onClick={scrollToSection('solutions')} className="w-full sm:w-auto px-10 py-5 bg-primary text-background-dark rounded-2xl text-sm font-black shadow-2xl shadow-primary/30 hover:scale-105 transition-all uppercase tracking-widest hover-glow neon-border">
-              See Live Demos
+              {t('See Live Demos', 'شوف العروض الحية')}
             </button>
           </div>
         </div>
@@ -318,9 +402,9 @@ const LandingPage: React.FC = () => {
         {/* Animated Stats Preview */}
         <div className="mt-20 grid grid-cols-3 gap-8 max-w-2xl mx-auto">
           {[
-            { label: 'Schools Served', value: '15+', icon: 'school' },
-            { label: 'Students Managed', value: '50K+', icon: 'groups' },
-            { label: 'Revenue Increased', value: '35%', icon: 'trending_up' }
+            { label: t('Schools Served', 'المدارس المخدومة'), value: '15+', icon: 'school' },
+            { label: t('Students Managed', 'عدد الطلاب'), value: '50K+', icon: 'groups' },
+            { label: t('Revenue Increased', 'زيادة الإيرادات'), value: '35%', icon: 'trending_up' }
           ].map((stat, idx) => (
             <div key={idx} className={`text-center animate-bounce-in stagger-${idx + 1}`}>
               <div className="size-16 mx-auto mb-4 rounded-2xl bg-primary/10 flex items-center justify-center">
@@ -338,22 +422,22 @@ const LandingPage: React.FC = () => {
         <div className="grid lg:grid-cols-2 gap-16 items-center">
           <div className="space-y-8 animate-slide-up">
             <div>
-              <p className="text-primary text-[10px] font-black uppercase tracking-[0.3em] mb-4">SOLUTION 01</p>
-              <h2 className="text-4xl md:text-6xl font-extrabold tracking-tight">24/7 Lead Capture <br />& Conversion</h2>
+              <p className="text-primary text-[10px] font-black uppercase tracking-[0.3em] mb-4">{t('SOLUTION 01', 'الحل 01')}</p>
+              <h2 className="text-4xl md:text-6xl font-extrabold tracking-tight">{t('24/7 Lead Capture', 'التقاط العملاء على مدار الساعة')} <br />{t('& Conversion', 'والتحويل')}</h2>
             </div>
             <div className="presentation-card p-8 rounded-[2rem] space-y-4 hover-lift">
-              <p className="text-red-400 font-black text-sm uppercase tracking-widest">The Problem:</p>
-              <p className="text-slate-400 text-lg">Schools lose 60% of prospective parents who message after hours or during peak enrollment periods.</p>
+              <p className="text-red-400 font-black text-sm uppercase tracking-widest">{t('The Problem:', 'المشكلة:')}</p>
+              <p className="text-slate-400 text-lg">{t('Schools lose 60% of prospective parents who message after hours or during peak enrollment periods.', 'المدارس بتخسر 60% من أولياء الأمور اللي بيتواصلوا بعد المواعيد أو وقت الزحمة.')}</p>
             </div>
             <ul className="space-y-4">
               {[
-                'Implemented at Global International Institutions',
-                'Average 3x increase in lead capture rate',
-                '24/7 Multilingual support (Arabic/English)',
-                'WhatsApp instant notification for admission team with instant lead gathering',
-                'Multi AI agents for each school organization (National, IGCSE, American, HR)',
-                'Monthly analytics reports',
-                'Instant knowledge base modification'
+                t('Implemented at Global International Institutions', 'مطبق في مؤسسات تعليمية دولية'),
+                t('Average 3x increase in lead capture rate', 'زيادة 3 أضعاف في معدل التقاط العملاء'),
+                t('24/7 Multilingual support (Arabic/English)', 'دعم متعدد اللغات 24/7 (عربي/إنجليزي)'),
+                t('WhatsApp instant notification for admission team with instant lead gathering', 'تنبيهات واتساب فورية لفريق القبول مع جمع العملاء فوراً'),
+                t('Multi AI agents for each school organization (National, IGCSE, American, HR)', 'عدة وكلاء ذكاء اصطناعي لكل قسم (وطني، IGCSE، أمريكي، HR)'),
+                t('Monthly analytics reports', 'تقارير شهرية تلقائية'),
+                t('Instant knowledge base modification', 'تحديث فوري لقاعدة المعرفة')
               ].map((item, idx) => (
                 <li key={item} className={`flex items-start gap-3 text-slate-300 font-bold animate-slide-up stagger-${Math.min(idx + 1, 5)}`}>
                   <span className="material-symbols-outlined text-primary shrink-0">check_circle</span>
@@ -371,9 +455,9 @@ const LandingPage: React.FC = () => {
                     <span className="material-symbols-outlined">school</span>
                   </div>
                   <div>
-                    <p className="text-xs font-black dark:text-white uppercase tracking-widest">Admissions AI Bot</p>
+                    <p className="text-xs font-black dark:text-white uppercase tracking-widest">{t('Admissions AI Bot', 'بوت القبول الذكي')}</p>
                     <p className="text-[9px] text-emerald-500 font-bold uppercase tracking-widest flex items-center gap-1">
-                      <span className="size-1.5 bg-emerald-500 rounded-full animate-pulse"></span> Online
+                      <span className="size-1.5 bg-emerald-500 rounded-full animate-pulse"></span> {t('Online', 'متصل')}
                     </p>
                   </div>
                 </div>
@@ -401,7 +485,7 @@ const LandingPage: React.FC = () => {
                   type="text"
                   value={chatInput}
                   onChange={(e) => setChatInput(e.target.value)}
-                  placeholder="Ask about tuition or curriculum..."
+                  placeholder={t('Ask about tuition or curriculum...', 'اسأل عن المصروفات أو المنهج...')}
                   className="flex-1 bg-background-dark border-none rounded-xl text-xs py-3 px-4 focus:ring-1 focus:ring-primary outline-none"
                   disabled={isBotTyping}
                 />
@@ -412,9 +496,9 @@ const LandingPage: React.FC = () => {
             </div>
             <div className="mt-6 grid grid-cols-3 gap-4 px-4 pb-4">
               {[
-                { value: '0.8s', label: 'Avg Response' },
-                { value: '450+', label: 'Leads/Month' },
-                { value: '98%', label: 'Satisfaction' }
+                { value: '0.8s', label: t('Avg Response', 'متوسط الرد') },
+                { value: '450+', label: t('Leads/Month', 'عملاء/شهر') },
+                { value: '98%', label: t('Satisfaction', 'رضا') }
               ].map((stat, idx) => (
                 <div key={idx} className={`text-center animate-bounce-in stagger-${idx + 1}`}>
                   <p className="text-xl font-black text-primary">{stat.value}</p>
@@ -429,19 +513,19 @@ const LandingPage: React.FC = () => {
       {/* Solution 2: Internal Process Automation */}
       <section id="process" className="relative z-10 max-w-7xl mx-auto px-6 py-24 md:py-32 border-t border-white/5">
         <div className="text-center mb-16 animate-slide-up">
-          <p className="text-primary text-[10px] font-black uppercase tracking-[0.3em] mb-4">SOLUTION 02</p>
-          <h2 className="text-4xl md:text-6xl font-extrabold tracking-tight">Streamline Operations</h2>
-          <p className="text-slate-400 text-lg md:text-xl mt-6 max-w-2xl mx-auto font-medium">Reduce administrative overhead and eliminate manual data entry across your entire school ecosystem.</p>
+          <p className="text-primary text-[10px] font-black uppercase tracking-[0.3em] mb-4">{t('SOLUTION 02', 'الحل 02')}</p>
+          <h2 className="text-4xl md:text-6xl font-extrabold tracking-tight">{t('Streamline Operations', 'نظّم العمليات')}</h2>
+          <p className="text-slate-400 text-lg md:text-xl mt-6 max-w-2xl mx-auto font-medium">{t('Reduce administrative overhead and eliminate manual data entry across your entire school ecosystem.', 'قلّل العبء الإداري وامنع الإدخال اليدوي للبيانات في كل أقسام المدرسة.')}</p>
         </div>
 
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
           {[
-            { title: 'Admissions Workflows', icon: 'assignment_ind', desc: 'Automated application processing, document OCR, and smart interview scheduling.' },
-            { title: 'Student Records Sync', icon: 'sync_alt', desc: 'Unified data synchronization with Odoo ERP, PowerSchool, Veracross, and Blackbaud.' },
-            { title: 'Parent Communication', icon: 'notifications_active', desc: 'Multi-channel bulk messaging for announcements, emergency alerts, and individual updates.' },
-            { title: 'HR & Payroll Automation', icon: 'badge', desc: 'Teacher contract management, attendance tracking, and leave requests with approval chains.' },
-            { title: 'Inventory & Procurement', icon: 'inventory_2', desc: 'Automated textbook reordering, lab supply tracking, and maintenance request routing.' },
-            { title: 'Advanced SIS Integration', icon: 'hub', desc: 'Native API connectors for global school information systems to ensure data integrity.' }
+            { title: t('Admissions Workflows', 'سير عمل القبول'), icon: 'assignment_ind', desc: t('Automated application processing, document OCR, and smart interview scheduling.', 'أتمتة معالجة الطلبات، قراءة المستندات، وجدولة المقابلات.') },
+            { title: t('Student Records Sync', 'مزامنة سجلات الطلاب'), icon: 'sync_alt', desc: t('Unified data synchronization with Odoo ERP, PowerSchool, Veracross, and Blackbaud.', 'مزامنة موحدة للبيانات مع أنظمة المدرسة.') },
+            { title: t('Parent Communication', 'تواصل أولياء الأمور'), icon: 'notifications_active', desc: t('Multi-channel bulk messaging for announcements, emergency alerts, and individual updates.', 'رسائل جماعية متعددة القنوات للإعلانات والتنبيهات والتحديثات.') },
+            { title: t('HR & Payroll Automation', 'أتمتة الموارد البشرية والمرتبات'), icon: 'badge', desc: t('Teacher contract management, attendance tracking, and leave requests with approval chains.', 'إدارة العقود والحضور والإجازات بموافقات تلقائية.') },
+            { title: t('Inventory & Procurement', 'المخزون والمشتريات'), icon: 'inventory_2', desc: t('Automated textbook reordering, lab supply tracking, and maintenance request routing.', 'إعادة طلب الكتب وتتبع المعامل وتحويل طلبات الصيانة تلقائياً.') },
+            { title: t('Advanced SIS Integration', 'تكامل أنظمة SIS'), icon: 'hub', desc: t('Native API connectors for global school information systems to ensure data integrity.', 'روابط API مباشرة لضمان تكامل البيانات.') }
           ].map((item, idx) => (
             <div key={idx} className={`presentation-card p-8 rounded-[2.5rem] hover-lift cursor-pointer group animate-slide-up stagger-${Math.min(idx + 1, 5)}`}>
               <div className="size-14 bg-primary/10 text-primary rounded-2xl flex items-center justify-center mb-6 group-hover:bg-primary group-hover:text-background-dark transition-all group-hover:scale-110">
@@ -459,17 +543,17 @@ const LandingPage: React.FC = () => {
         <div className="grid lg:grid-cols-12 gap-16 items-start">
           <div className="lg:col-span-4 space-y-10 animate-slide-up">
             <div>
-              <p className="text-primary text-[10px] font-black uppercase tracking-[0.3em] mb-4">SOLUTION 03</p>
-              <h2 className="text-4xl md:text-5xl font-extrabold tracking-tight leading-tight">Seekers Finance CRM</h2>
-              <p className="text-slate-400 text-lg mt-6 font-medium leading-relaxed">Complete financial management system with automated payment tracking, intelligent reminders, and real-time analytics.</p>
+              <p className="text-primary text-[10px] font-black uppercase tracking-[0.3em] mb-4">{t('SOLUTION 03', 'الحل 03')}</p>
+              <h2 className="text-4xl md:text-5xl font-extrabold tracking-tight leading-tight">{t('Seekers Finance CRM', 'سيكرز لإدارة المالية')}</h2>
+              <p className="text-slate-400 text-lg mt-6 font-medium leading-relaxed">{t('Complete financial management system with automated payment tracking, intelligent reminders, and real-time analytics.', 'نظام مالي متكامل لتتبع المدفوعات تلقائياً، وتنبيهات ذكية، وتحليلات لحظية.')}</p>
             </div>
 
             <div className="space-y-4">
               {[
-                { title: 'Live Data Sync', desc: 'Real-time synchronization with your school database', icon: 'sync' },
-                { title: 'Smart Reminders', desc: 'AI-powered WhatsApp payment reminders', icon: 'notifications' },
-                { title: 'Analytics Dashboard', desc: 'Comprehensive financial insights and forecasting', icon: 'analytics' },
-                { title: 'Multi-user Access', desc: 'Role-based permissions for your entire team', icon: 'group' }
+                { title: t('Live Data Sync', 'مزامنة البيانات الحية'), desc: t('Real-time synchronization with your school database', 'مزامنة لحظية مع قاعدة بيانات المدرسة'), icon: 'sync' },
+                { title: t('Smart Reminders', 'تنبيهات ذكية'), desc: t('AI-powered WhatsApp payment reminders', 'تنبيهات واتساب بالذكاء الاصطناعي'), icon: 'notifications' },
+                { title: t('Analytics Dashboard', 'لوحة تحليلات'), desc: t('Comprehensive financial insights and forecasting', 'رؤية مالية شاملة وتوقعات مستقبلية'), icon: 'analytics' },
+                { title: t('Multi-user Access', 'صلاحيات متعددة'), desc: t('Role-based permissions for your entire team', 'صلاحيات حسب الدور لكل فريقك'), icon: 'group' }
               ].map((f, i) => (
                 <div key={i} className={`flex gap-4 group p-4 rounded-2xl transition-all hover:bg-white/5 animate-slide-up stagger-${i + 1}`}>
                   <div className="size-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-background-dark transition-all">
@@ -491,18 +575,18 @@ const LandingPage: React.FC = () => {
               <div className="flex items-center gap-3">
                 <div className="size-10 bg-gradient-to-br from-primary to-indigo-500 rounded-xl flex items-center justify-center text-white font-black text-lg shadow-lg">S</div>
                 <div>
-                  <h3 className="text-sm font-black uppercase tracking-wider">Seekers Finance</h3>
-                  <p className="text-[10px] text-slate-500">Live Demo - Interactive</p>
+                  <h3 className="text-sm font-black uppercase tracking-wider">{t('Seekers Finance', 'سيكرز للمالية')}</h3>
+                  <p className="text-[10px] text-slate-500">{t('Live Demo - Interactive', 'عرض حي - تفاعلي')}</p>
                 </div>
               </div>
 
               <div className="flex bg-background-dark/80 p-1 rounded-xl border border-white/10 overflow-x-auto">
                 {[
-                  { id: 'dashboard', label: 'لوحة التحكم', icon: 'dashboard' },
-                  { id: 'students', label: 'الطلاب', icon: 'school' },
-                  { id: 'transactions', label: 'المعاملات', icon: 'receipt_long' },
-                  { id: 'teachers', label: 'المدرسين', icon: 'person' },
-                  { id: 'overdue', label: 'المتأخرات', icon: 'warning' }
+                  { id: 'dashboard', label: t('Dashboard', 'لوحة التحكم'), icon: 'dashboard' },
+                  { id: 'students', label: t('Students', 'الطلاب'), icon: 'school' },
+                  { id: 'transactions', label: t('Transactions', 'المعاملات'), icon: 'receipt_long' },
+                  { id: 'teachers', label: t('Teachers', 'المدرسين'), icon: 'person' },
+                  { id: 'overdue', label: t('Overdue', 'المتأخرات'), icon: 'warning' }
                 ].map(tab => (
                   <button
                     key={tab.id}
@@ -525,10 +609,10 @@ const LandingPage: React.FC = () => {
                   {/* Stats Cards */}
                   <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                     {[
-                      { label: 'إجمالي الطلاب', value: animatedStats.students.toLocaleString(), icon: 'groups', color: 'primary' },
-                      { label: 'المحصل', value: `${(animatedStats.collected / 1000).toFixed(0)}K ج.م`, icon: 'payments', color: 'emerald' },
-                      { label: 'المتبقي', value: `${(animatedStats.pending / 1000).toFixed(0)}K ج.م`, icon: 'pending', color: 'amber' },
-                      { label: 'نسبة التحصيل', value: '59.5%', icon: 'trending_up', color: 'blue' }
+                      { label: t('Total Students', 'إجمالي الطلاب'), value: animatedStats.students.toLocaleString(), icon: 'groups', color: 'primary' },
+                      { label: t('Collected', 'المحصل'), value: `${(animatedStats.collected / 1000).toFixed(0)}K ${currency}`, icon: 'payments', color: 'emerald' },
+                      { label: t('Pending', 'المتبقي'), value: `${(animatedStats.pending / 1000).toFixed(0)}K ${currency}`, icon: 'pending', color: 'amber' },
+                      { label: t('Collection Rate', 'نسبة التحصيل'), value: '59.5%', icon: 'trending_up', color: 'blue' }
                     ].map((stat, idx) => (
                       <div key={idx} className={`crm-stat-card animate-bounce-in stagger-${idx + 1}`}>
                         <div className="flex items-center justify-between mb-2">
@@ -545,7 +629,7 @@ const LandingPage: React.FC = () => {
                     <div className="bg-background-dark/50 rounded-2xl p-6 border border-white/5">
                       <h4 className="text-sm font-black mb-4 flex items-center gap-2">
                         <span className="material-symbols-outlined text-primary">bar_chart</span>
-                        التحصيل الشهري
+                        {t('Monthly Collections', 'التحصيل الشهري')}
                       </h4>
                       <div className="h-40 flex items-end justify-between gap-2">
                         {[65, 45, 80, 55, 90, 70, 85, 60, 75, 95, 50, 88].map((h, i) => (
@@ -563,7 +647,7 @@ const LandingPage: React.FC = () => {
                     <div className="bg-background-dark/50 rounded-2xl p-6 border border-white/5">
                       <h4 className="text-sm font-black mb-4 flex items-center gap-2">
                         <span className="material-symbols-outlined text-primary">pie_chart</span>
-                        توزيع الدفعات
+                        {t('Payment Distribution', 'توزيع الدفعات')}
                       </h4>
                       <div className="flex items-center justify-around">
                         <div className="relative size-32">
@@ -579,15 +663,15 @@ const LandingPage: React.FC = () => {
                         <div className="space-y-2">
                           <div className="flex items-center gap-2 text-xs">
                             <span className="size-3 rounded bg-emerald-500"></span>
-                            <span>مدفوع بالكامل</span>
+                            <span>{t('Paid in Full', 'مدفوع بالكامل')}</span>
                           </div>
                           <div className="flex items-center gap-2 text-xs">
                             <span className="size-3 rounded bg-amber-500"></span>
-                            <span>مدفوع جزئياً</span>
+                            <span>{t('Partially Paid', 'مدفوع جزئياً')}</span>
                           </div>
                           <div className="flex items-center gap-2 text-xs">
                             <span className="size-3 rounded bg-red-500"></span>
-                            <span>متأخر</span>
+                            <span>{t('Overdue', 'متأخر')}</span>
                           </div>
                         </div>
                       </div>
@@ -607,9 +691,9 @@ const LandingPage: React.FC = () => {
                         type="text"
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        placeholder="البحث عن طالب..."
+                        placeholder={t('Search for a student...', 'ابحث عن طالب...')}
                         className="w-full bg-background-dark/80 border border-white/10 rounded-xl py-3 pr-10 pl-4 text-sm focus:ring-1 focus:ring-primary outline-none"
-                        dir="rtl"
+                        dir={isArabic ? 'rtl' : 'ltr'}
                       />
                     </div>
                     <button className="px-4 py-2 bg-primary/10 text-primary rounded-xl text-sm font-bold hover:bg-primary hover:text-background-dark transition-all">
@@ -619,19 +703,19 @@ const LandingPage: React.FC = () => {
 
                   {/* Students Table */}
                   <div className="bg-background-dark/40 rounded-2xl border border-white/5 overflow-hidden">
-                    <div className="grid grid-cols-12 gap-2 p-4 bg-white/5 text-[10px] font-black uppercase tracking-wider text-slate-500" dir="rtl">
-                      <div className="col-span-4">الطالب</div>
-                      <div className="col-span-2">الرسوم</div>
-                      <div className="col-span-2">المدفوع</div>
-                      <div className="col-span-2">المتبقي</div>
-                      <div className="col-span-2">الحالة</div>
+                    <div className="grid grid-cols-12 gap-2 p-4 bg-white/5 text-[10px] font-black uppercase tracking-wider text-slate-500" dir={isArabic ? 'rtl' : 'ltr'}>
+                      <div className="col-span-4">{t('Student', 'الطالب')}</div>
+                      <div className="col-span-2">{t('Fees', 'الرسوم')}</div>
+                      <div className="col-span-2">{t('Paid', 'المدفوع')}</div>
+                      <div className="col-span-2">{t('Remaining', 'المتبقي')}</div>
+                      <div className="col-span-2">{t('Status', 'الحالة')}</div>
                     </div>
                     <div className="divide-y divide-white/5">
                       {filteredStudents.map((student, idx) => (
                         <div
                           key={student.id}
                           className={`grid grid-cols-12 gap-2 p-4 crm-table-row cursor-pointer animate-slide-up stagger-${Math.min(idx + 1, 5)}`}
-                          dir="rtl"
+                          dir={isArabic ? 'rtl' : 'ltr'}
                           onClick={() => { setSelectedStudent(student); setShowPaymentModal(true); }}
                         >
                           <div className="col-span-4 flex items-center gap-3">
@@ -651,7 +735,7 @@ const LandingPage: React.FC = () => {
                               student.status === 'paid' ? 'status-paid' :
                               student.status === 'partial' ? 'status-pending' : 'status-overdue'
                             }`}>
-                              {student.status === 'paid' ? 'مدفوع' : student.status === 'partial' ? 'جزئي' : 'متأخر'}
+                              {student.status === 'paid' ? t('Paid', 'مدفوع') : student.status === 'partial' ? t('Partial', 'جزئي') : t('Overdue', 'متأخر')}
                             </span>
                           </div>
                         </div>
@@ -665,10 +749,10 @@ const LandingPage: React.FC = () => {
               {crmActiveTab === 'transactions' && (
                 <div className="space-y-4 animate-slide-up">
                   <div className="flex justify-between items-center">
-                    <h4 className="text-lg font-black">المعاملات المالية</h4>
+                    <h4 className="text-lg font-black">{t('Financial Transactions', 'المعاملات المالية')}</h4>
                     <button className="px-4 py-2 bg-primary text-background-dark rounded-xl text-sm font-bold flex items-center gap-2 hover:scale-105 transition-all">
                       <span className="material-symbols-outlined text-sm">add</span>
-                      معاملة جديدة
+                      {t('New Transaction', 'معاملة جديدة')}
                     </button>
                   </div>
 
@@ -679,13 +763,13 @@ const LandingPage: React.FC = () => {
                           <div className={`size-12 rounded-xl flex items-center justify-center ${tx.type === 'IN' ? 'bg-emerald-500/20 text-emerald-500' : 'bg-red-500/20 text-red-500'}`}>
                             <span className="material-symbols-outlined">{tx.type === 'IN' ? 'arrow_downward' : 'arrow_upward'}</span>
                           </div>
-                          <div dir="rtl">
+                          <div dir={isArabic ? 'rtl' : 'ltr'}>
                             <p className="text-sm font-bold">{tx.description}</p>
                             <p className="text-[10px] text-slate-500">{tx.date} • {tx.method}</p>
                           </div>
                         </div>
                         <p className={`text-lg font-black ${tx.type === 'IN' ? 'text-emerald-400' : 'text-red-400'}`}>
-                          {tx.type === 'IN' ? '+' : '-'}{tx.amount.toLocaleString()} ج.م
+                          {tx.type === 'IN' ? '+' : '-'}{tx.amount.toLocaleString()} {currency}
                         </p>
                       </div>
                     ))}
@@ -697,10 +781,10 @@ const LandingPage: React.FC = () => {
               {crmActiveTab === 'teachers' && (
                 <div className="space-y-4 animate-slide-up">
                   <div className="flex justify-between items-center">
-                    <h4 className="text-lg font-black">إدارة المدرسين والرواتب</h4>
+                    <h4 className="text-lg font-black">{t('Teachers & Payroll', 'إدارة المدرسين والرواتب')}</h4>
                     <button className="px-4 py-2 bg-primary text-background-dark rounded-xl text-sm font-bold flex items-center gap-2 hover:scale-105 transition-all">
                       <span className="material-symbols-outlined text-sm">person_add</span>
-                      إضافة مدرس
+                      {t('Add Teacher', 'إضافة مدرس')}
                     </button>
                   </div>
 
@@ -712,23 +796,23 @@ const LandingPage: React.FC = () => {
                             <div className="size-12 rounded-xl bg-primary/20 flex items-center justify-center text-primary">
                               <span className="material-symbols-outlined">person</span>
                             </div>
-                            <div dir="rtl">
+                            <div dir={isArabic ? 'rtl' : 'ltr'}>
                               <p className="font-bold">{teacher.name}</p>
                               <p className="text-xs text-slate-500">{teacher.subject}</p>
                             </div>
                           </div>
                           <span className={`px-2 py-1 rounded-full text-[9px] font-black uppercase ${teacher.status === 'paid' ? 'status-paid' : 'status-pending'}`}>
-                            {teacher.status === 'paid' ? 'تم الصرف' : 'قيد الإنتظار'}
+                            {teacher.status === 'paid' ? t('Paid', 'تم الصرف') : t('Pending', 'قيد الإنتظار')}
                           </span>
                         </div>
-                        <div className="grid grid-cols-2 gap-4 text-center" dir="rtl">
+                        <div className="grid grid-cols-2 gap-4 text-center" dir={isArabic ? 'rtl' : 'ltr'}>
                           <div>
-                            <p className="text-xs text-slate-500">الراتب</p>
-                            <p className="text-lg font-black text-white">{teacher.salary.toLocaleString()} ج.م</p>
+                            <p className="text-xs text-slate-500">{t('Salary', 'الراتب')}</p>
+                            <p className="text-lg font-black text-white">{teacher.salary.toLocaleString()} {currency}</p>
                           </div>
                           <div>
-                            <p className="text-xs text-slate-500">المدفوع</p>
-                            <p className="text-lg font-black text-emerald-400">{teacher.paid.toLocaleString()} ج.م</p>
+                            <p className="text-xs text-slate-500">{t('Paid', 'المدفوع')}</p>
+                            <p className="text-lg font-black text-emerald-400">{teacher.paid.toLocaleString()} {currency}</p>
                           </div>
                         </div>
                         <div className="mt-4">
@@ -749,9 +833,9 @@ const LandingPage: React.FC = () => {
                     <div className="size-20 bg-red-500 text-white rounded-full flex items-center justify-center mx-auto mb-6 shadow-xl shadow-red-500/30 animate-glow">
                       <span className="material-symbols-outlined text-4xl">warning</span>
                     </div>
-                    <h4 className="text-2xl font-black text-white mb-2">إجمالي المتأخرات</h4>
-                    <p className="text-5xl font-black text-red-500 mb-4">{totalPending.toLocaleString()} ج.م</p>
-                    <p className="text-sm text-slate-400 mb-6">{overdueStudents.length} طالب متأخر في السداد</p>
+                    <h4 className="text-2xl font-black text-white mb-2">{t('Total Overdue', 'إجمالي المتأخرات')}</h4>
+                    <p className="text-5xl font-black text-red-500 mb-4">{totalPending.toLocaleString()} {currency}</p>
+                    <p className="text-sm text-slate-400 mb-6">{t(`${overdueStudents.length} students overdue`, `${overdueStudents.length} طالب متأخر في السداد`)}</p>
 
                     <button
                       onClick={triggerWhatsAppCampaign}
@@ -761,12 +845,12 @@ const LandingPage: React.FC = () => {
                       {isSimulatingAction ? (
                         <>
                           <span className="material-symbols-outlined animate-spin">sync</span>
-                          جاري إرسال تنبيهات الواتساب...
+                          {t('Sending WhatsApp reminders...', 'جاري إرسال تنبيهات الواتساب...')}
                         </>
                       ) : (
                         <>
                           <span className="material-symbols-outlined">send</span>
-                          تفعيل حملة التحصيل الذكية
+                          {t('Launch Smart Collection Campaign', 'تفعيل حملة التحصيل الذكية')}
                         </>
                       )}
                     </button>
@@ -775,7 +859,7 @@ const LandingPage: React.FC = () => {
                   {/* Overdue Students List */}
                   <div className="space-y-3">
                     {overdueStudents.map((student, idx) => (
-                      <div key={student.id} className={`flex items-center justify-between p-4 bg-red-500/5 border border-red-500/20 rounded-2xl animate-slide-up stagger-${Math.min(idx + 1, 3)}`} dir="rtl">
+                      <div key={student.id} className={`flex items-center justify-between p-4 bg-red-500/5 border border-red-500/20 rounded-2xl animate-slide-up stagger-${Math.min(idx + 1, 3)}`} dir={isArabic ? 'rtl' : 'ltr'}>
                         <div className="flex items-center gap-4">
                           <div className="size-12 rounded-full bg-red-500/20 flex items-center justify-center text-red-500">
                             <span className="material-symbols-outlined">person</span>
@@ -785,9 +869,9 @@ const LandingPage: React.FC = () => {
                             <p className="text-xs text-slate-500">{student.grade} • {student.phone}</p>
                           </div>
                         </div>
-                        <div className="text-left">
-                          <p className="text-lg font-black text-red-400">{student.remaining.toLocaleString()} ج.م</p>
-                          <button className="text-[10px] text-primary hover:underline">إرسال تذكير</button>
+                        <div className={isArabic ? 'text-right' : 'text-left'}>
+                          <p className="text-lg font-black text-red-400">{student.remaining.toLocaleString()} {currency}</p>
+                          <button className="text-[10px] text-primary hover:underline">{t('Send reminder', 'إرسال تذكير')}</button>
                         </div>
                       </div>
                     ))}
@@ -801,16 +885,16 @@ const LandingPage: React.FC = () => {
               <div className="flex items-center gap-6">
                 <div className="text-center">
                   <p className="text-lg font-black text-primary">96.4%</p>
-                  <p className="text-[8px] text-slate-500 uppercase tracking-widest">نسبة التحصيل</p>
+                  <p className="text-[8px] text-slate-500 uppercase tracking-widest">{t('Collection Rate', 'نسبة التحصيل')}</p>
                 </div>
                 <div className="text-center">
                   <p className="text-lg font-black text-emerald-400">+12%</p>
-                  <p className="text-[8px] text-slate-500 uppercase tracking-widest">vs الشهر السابق</p>
+                  <p className="text-[8px] text-slate-500 uppercase tracking-widest">{t('vs last month', 'مقارنة بالشهر السابق')}</p>
                 </div>
               </div>
               <div className="flex items-center gap-2">
                 <span className="size-2 bg-emerald-500 rounded-full animate-pulse"></span>
-                <span className="text-[9px] text-slate-500 font-black uppercase tracking-widest">Live Demo • CAI-FIN-01</span>
+                <span className="text-[9px] text-slate-500 font-black uppercase tracking-widest">{t('Live Demo • CAI-FIN-01', 'عرض حي • CAI-FIN-01')}</span>
               </div>
             </div>
           </div>
@@ -820,10 +904,10 @@ const LandingPage: React.FC = () => {
       {/* Customizable Agentic Application Section - Enhanced */}
       <section id="agentic-future" className="relative z-10 max-w-7xl mx-auto px-6 py-24 md:py-32 border-t border-white/5">
         <div className="text-center mb-16 animate-slide-up">
-          <p className="text-primary text-[10px] font-black uppercase tracking-[0.3em] mb-4">THE FUTURE OF AUTOMATION</p>
-          <h2 className="text-4xl md:text-6xl font-extrabold tracking-tight leading-tight">Build your own<br /><span className="gradient-text-animated">agentic AI application</span></h2>
+          <p className="text-primary text-[10px] font-black uppercase tracking-[0.3em] mb-4">{t('THE FUTURE OF AUTOMATION', 'مستقبل الأتمتة')}</p>
+          <h2 className="text-4xl md:text-6xl font-extrabold tracking-tight leading-tight">{t('Build your own', 'ابنِ بنفسك')}<br /><span className="gradient-text-animated">{t('agentic AI application', 'تطبيق ذكاء اصطناعي وكِيل')}</span></h2>
           <p className="text-lg md:text-xl text-slate-400 font-medium max-w-2xl mx-auto mt-6">
-            Share your idea and we will shape it into a production-ready agentic application tailored to your workflows.
+            {t('Share your idea and we will shape it into a production-ready agentic application tailored to your workflows.', 'احكي فكرتك وإحنا هنحوّلها لتطبيق وكِيل جاهز للإطلاق حسب شغلك.')}
           </p>
         </div>
 
@@ -843,8 +927,8 @@ const LandingPage: React.FC = () => {
                     </div>
                   </div>
                   <div>
-                    <h3 className="text-2xl font-black mb-2">Building Your Application...</h3>
-                    <p className="text-slate-400">AI is configuring your custom agentic app</p>
+                    <h3 className="text-2xl font-black mb-2">{t('Building Your Application...', 'جاري بناء التطبيق...')}</h3>
+                    <p className="text-slate-400">{t('AI is configuring your custom agentic app', 'الذكاء الاصطناعي بيجهز التطبيق الوكيل الخاص بك')}</p>
                   </div>
                   <div className="max-w-md mx-auto">
                     <div className="progress-bar h-3">
@@ -859,21 +943,21 @@ const LandingPage: React.FC = () => {
                     <span className="material-symbols-outlined text-5xl">rocket_launch</span>
                   </div>
                   <div>
-                    <h3 className="text-3xl font-black mb-3">Your Agentic App is Ready!</h3>
+                    <h3 className="text-3xl font-black mb-3">{t('Your Agentic App is Ready!', 'تطبيقك الوكيل جاهز!')}</h3>
                     <p className="text-slate-400 text-lg max-w-md mx-auto">
-                      Your custom agentic application with <span className="text-primary font-bold">{selectedCapabilities.length} capabilities</span> has been configured and is ready for deployment.
+                      {t('Your custom agentic application with', 'تطبيقك الوكيل المخصص يحتوي على')} <span className="text-primary font-bold">{selectedCapabilities.length} {t('capabilities', 'قدرات')}</span> {t('and is ready for deployment.', 'وجاهز للإطلاق.')}
                     </p>
                   </div>
 
                   {/* Agent Preview Card */}
-                  <div className="bg-background-dark/60 rounded-2xl p-6 border border-white/10 text-left max-w-md mx-auto">
+                  <div className={`bg-background-dark/60 rounded-2xl p-6 border border-white/10 ${isArabic ? 'text-right' : 'text-left'} max-w-md mx-auto`}>
                     <div className="flex items-center gap-3 mb-4">
                       <div className="size-12 bg-primary rounded-xl flex items-center justify-center">
                         <span className="material-symbols-outlined text-background-dark">smart_toy</span>
                       </div>
                       <div>
-                        <p className="font-black">Agentic Application</p>
-                        <p className="text-xs text-emerald-500">Active & Ready</p>
+                        <p className="font-black">{t('Agentic Application', 'تطبيق وكيل')}</p>
+                        <p className="text-xs text-emerald-500">{t('Active & Ready', 'جاهز ومفعّل')}</p>
                       </div>
                     </div>
                     <div className="flex flex-wrap gap-2">
@@ -892,19 +976,19 @@ const LandingPage: React.FC = () => {
                     onClick={() => {setIsDreamSubmitted(false); setSelectedCapabilities([]); setDreamIdea(''); setAgentBuildProgress(0);}}
                     className="px-8 py-4 bg-white/5 border border-white/10 rounded-2xl text-sm font-black uppercase tracking-widest hover:border-primary transition-all"
                   >
-                    Build Another App
+                    {t('Build Another App', 'ابنِ تطبيق آخر')}
                   </button>
                 </div>
               ) : (
                 <>
                   <div className="space-y-2">
-                    <h3 className="text-2xl font-black tracking-tight">Agentic App Builder</h3>
-                    <p className="text-sm text-slate-400 font-medium">Select capabilities and describe your idea</p>
+                    <h3 className="text-2xl font-black tracking-tight">{t('Agentic App Builder', 'منشئ التطبيقات الوكيلة')}</h3>
+                    <p className="text-sm text-slate-400 font-medium">{t('Select capabilities and describe your idea', 'اختار القدرات واحكي فكرتك')}</p>
                   </div>
 
                   {/* Capability Selection */}
                   <div className="space-y-3">
-                    <p className="text-xs font-black uppercase tracking-widest text-slate-500">Select Capabilities</p>
+                    <p className="text-xs font-black uppercase tracking-widest text-slate-500">{t('Select Capabilities', 'اختيار القدرات')}</p>
                     <div className="grid grid-cols-2 gap-3">
                       {agentCapabilities.map((cap, idx) => (
                         <div
@@ -926,11 +1010,11 @@ const LandingPage: React.FC = () => {
 
                   <form onSubmit={handleDreamSubmit} className="space-y-6">
                     <div className="space-y-2">
-                      <p className="text-xs font-black uppercase tracking-widest text-slate-500">Describe Your Idea</p>
+                      <p className="text-xs font-black uppercase tracking-widest text-slate-500">{t('Describe Your Idea', 'وصف الفكرة')}</p>
                       <textarea
                         value={dreamIdea}
                         onChange={(e) => setDreamIdea(e.target.value)}
-                        placeholder="Describe the app you want to build, the users, and the outcome you need..."
+                        placeholder={t('Describe the app you want to build, the users, and the outcome you need...', 'اكتب تفاصيل التطبيق، مين المستخدمين، وعايز تحقق إيه...')}
                         className="w-full h-32 bg-background-dark/80 border border-white/10 rounded-2xl p-4 text-sm font-medium focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all resize-none"
                       />
                     </div>
@@ -939,7 +1023,7 @@ const LandingPage: React.FC = () => {
                       disabled={selectedCapabilities.length === 0 && !dreamIdea.trim()}
                       className="w-full py-5 bg-gradient-to-r from-primary to-indigo-500 text-background-dark rounded-2xl text-sm font-black uppercase tracking-[0.2em] shadow-2xl shadow-primary/30 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-4 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      Build My Agentic App
+                      {t('Build My Agentic App', 'ابنِ تطبيقي الوكيل')}
                       <span className="material-symbols-outlined">auto_awesome</span>
                     </button>
                   </form>
@@ -952,10 +1036,10 @@ const LandingPage: React.FC = () => {
           <div className="space-y-8 animate-slide-up stagger-2">
             <div className="space-y-6">
               {[
-                { icon: 'lightbulb', title: 'Any Idea, Any Scale', desc: 'From simple automation tasks to complex multi-agent systems, bring any concept to life.' },
-                { icon: 'speed', title: 'Rapid Deployment', desc: 'Go from idea to production in hours, not months. Our platform handles the complexity.' },
-                { icon: 'psychology', title: 'Continuous Learning', desc: 'Your agents evolve and improve over time, learning from every interaction.' },
-                { icon: 'security', title: 'Enterprise Security', desc: 'Bank-grade encryption and compliance with international data protection standards.' }
+                { icon: 'lightbulb', title: t('Any Idea, Any Scale', 'أي فكرة وبأي حجم'), desc: t('From simple automation tasks to complex multi-agent systems, bring any concept to life.', 'من مهام بسيطة لأنظمة متعددة الوكلاء، خلي فكرتك حقيقة.') },
+                { icon: 'speed', title: t('Rapid Deployment', 'إطلاق سريع'), desc: t('Go from idea to production in hours, not months. Our platform handles the complexity.', 'حوّل فكرتك للإنتاج في ساعات مش شهور.') },
+                { icon: 'psychology', title: t('Continuous Learning', 'تعلّم مستمر'), desc: t('Your agents evolve and improve over time, learning from every interaction.', 'الوكلاء بيتطوروا مع كل تفاعل.') },
+                { icon: 'security', title: t('Enterprise Security', 'أمان مؤسسي'), desc: t('Bank-grade encryption and compliance with international data protection standards.', 'تشفير قوي والالتزام بمعايير حماية البيانات.') }
               ].map((feature, idx) => (
                 <div key={idx} className={`flex gap-5 group animate-slide-up stagger-${idx + 1}`}>
                   <div className="size-14 bg-primary/10 rounded-2xl flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-background-dark transition-all shrink-0">
@@ -971,9 +1055,18 @@ const LandingPage: React.FC = () => {
 
             {/* Use Cases */}
             <div className="presentation-card p-6 rounded-2xl">
-              <p className="text-xs font-black uppercase tracking-widest text-slate-500 mb-4">Popular Use Cases</p>
+              <p className="text-xs font-black uppercase tracking-widest text-slate-500 mb-4">{t('Popular Use Cases', 'أمثلة شائعة')}</p>
               <div className="flex flex-wrap gap-2">
-                {['Student Analytics', 'Automated Grading', 'Parent Communication', 'HR Assistant', 'Inventory Management', 'Report Generation', 'Attendance Tracking', 'Fee Collection'].map((use, idx) => (
+                {[
+                  t('Student Analytics', 'تحليلات الطلاب'),
+                  t('Automated Grading', 'تصحيح تلقائي'),
+                  t('Parent Communication', 'تواصل أولياء الأمور'),
+                  t('HR Assistant', 'مساعد الموارد البشرية'),
+                  t('Inventory Management', 'إدارة المخزون'),
+                  t('Report Generation', 'إنشاء التقارير'),
+                  t('Attendance Tracking', 'متابعة الحضور'),
+                  t('Fee Collection', 'تحصيل المصروفات')
+                ].map((use, idx) => (
                   <span key={idx} className="px-4 py-2 bg-white/5 border border-white/10 rounded-full text-xs font-bold hover:border-primary hover:text-primary transition-all cursor-pointer">
                     {use}
                   </span>
@@ -987,21 +1080,21 @@ const LandingPage: React.FC = () => {
       {/* Footer / Thank You Section */}
       <footer id="trust" className="relative z-10 max-w-7xl mx-auto px-6 py-24 md:py-48 text-center border-t border-white/5">
         <div className="animate-slide-up">
-          <p className="text-primary text-[10px] font-black uppercase tracking-[0.4em] mb-6">NEXT GENERATION AUTOMATION</p>
+          <p className="text-primary text-[10px] font-black uppercase tracking-[0.4em] mb-6">{t('NEXT GENERATION AUTOMATION', 'أتمتة الجيل القادم')}</p>
           <h2 className="text-6xl md:text-9xl font-extrabold tracking-tighter leading-tight mb-8 gradient-text-animated">
-            Thank You
+            {t('Thank You', 'شكرًا لك')}
           </h2>
           <p className="text-lg md:text-2xl text-slate-400 font-medium max-w-2xl mx-auto mb-12">
-            For exploring the future of educational excellence with Seekers AI. We look forward to transforming your institution.
+            {t('For exploring the future of educational excellence with Seekers AI. We look forward to transforming your institution.', 'شكرًا لاستكشاف مستقبل التميّز التعليمي مع سيكرز. نترقب تطوير مؤسستك معًا.')}
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-6">
             <button onClick={scrollToSection('agentic-future')} className="w-full sm:w-auto px-16 py-6 bg-primary text-background-dark rounded-2xl text-sm font-black shadow-2xl shadow-primary/30 hover:scale-105 active:scale-95 transition-all uppercase tracking-[0.3em] hover-glow neon-border">
-              Start Scoping Now
+              {t('Start Scoping Now', 'ابدأ تحديد النطاق الآن')}
             </button>
           </div>
           <div className="mt-24 pt-16 flex flex-col items-center opacity-40">
-             <Logo size={420} showText={false} className="scale-75 sm:scale-100" />
-             <p className="text-[10px] font-black uppercase tracking-[0.4em] text-primary mt-6">Propelling Educational Intelligence</p>
+             <Logo size={520} showText={false} />
+             <p className="text-[10px] font-black uppercase tracking-[0.4em] text-primary mt-6">{t('Propelling Educational Intelligence', 'نقود ذكاء التعليم للأمام')}</p>
           </div>
         </div>
       </footer>
@@ -1011,37 +1104,37 @@ const LandingPage: React.FC = () => {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={() => setShowPaymentModal(false)}>
           <div className="bg-surface-dark rounded-3xl p-8 max-w-md w-full border border-white/10 shadow-2xl animate-bounce-in" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-6">
-              <h3 className="text-xl font-black">تسجيل دفعة جديدة</h3>
+              <h3 className="text-xl font-black">{t('Record New Payment', 'تسجيل دفعة جديدة')}</h3>
               <button onClick={() => setShowPaymentModal(false)} className="size-10 rounded-full bg-white/5 flex items-center justify-center hover:bg-white/10 transition-all">
                 <span className="material-symbols-outlined">close</span>
               </button>
             </div>
 
-            <div className="space-y-6" dir="rtl">
+            <div className="space-y-6" dir={isArabic ? 'rtl' : 'ltr'}>
               <div className="p-4 bg-background-dark/50 rounded-2xl">
-                <p className="text-sm text-slate-500">الطالب</p>
+                <p className="text-sm text-slate-500">{t('Student', 'الطالب')}</p>
                 <p className="text-lg font-bold">{selectedStudent.name}</p>
                 <p className="text-xs text-slate-500">{selectedStudent.grade}</p>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="p-4 bg-background-dark/50 rounded-2xl text-center">
-                  <p className="text-xs text-slate-500">المتبقي</p>
-                  <p className="text-xl font-black text-amber-400">{selectedStudent.remaining.toLocaleString()} ج.م</p>
+                  <p className="text-xs text-slate-500">{t('Remaining', 'المتبقي')}</p>
+                  <p className="text-xl font-black text-amber-400">{selectedStudent.remaining.toLocaleString()} {currency}</p>
                 </div>
                 <div className="p-4 bg-background-dark/50 rounded-2xl text-center">
-                  <p className="text-xs text-slate-500">المدفوع</p>
-                  <p className="text-xl font-black text-emerald-400">{selectedStudent.paid.toLocaleString()} ج.م</p>
+                  <p className="text-xs text-slate-500">{t('Paid', 'المدفوع')}</p>
+                  <p className="text-xl font-black text-emerald-400">{selectedStudent.paid.toLocaleString()} {currency}</p>
                 </div>
               </div>
 
               <div className="space-y-2">
-                <label className="text-sm font-bold">مبلغ الدفعة</label>
+                <label className="text-sm font-bold">{t('Payment Amount', 'مبلغ الدفعة')}</label>
                 <input
                   type="number"
                   value={paymentAmount}
                   onChange={(e) => setPaymentAmount(e.target.value)}
-                  placeholder="أدخل المبلغ"
+                  placeholder={t('Enter amount', 'أدخل المبلغ')}
                   className="w-full bg-background-dark border border-white/10 rounded-xl py-3 px-4 text-lg font-bold focus:ring-2 focus:ring-primary outline-none"
                 />
               </div>
@@ -1051,7 +1144,7 @@ const LandingPage: React.FC = () => {
                 disabled={!paymentAmount}
                 className="w-full py-4 bg-primary text-background-dark rounded-xl font-black uppercase tracking-widest disabled:opacity-50 hover:scale-[1.02] transition-all"
               >
-                تأكيد الدفع
+                {t('Confirm Payment', 'تأكيد الدفع')}
               </button>
             </div>
           </div>
