@@ -58,7 +58,7 @@ const LandingPage: React.FC = () => {
   const [isBotTyping, setIsBotTyping] = useState(false);
 
   // Solution 3: Enhanced Finance CRM Demo State
-  const [crmActiveTab, setCrmActiveTab] = useState<'dashboard' | 'students' | 'transactions' | 'teachers' | 'overdue'>('dashboard');
+  const [crmActiveTab, setCrmActiveTab] = useState<'dashboard' | 'students' | 'transactions' | 'teachers' | 'overdue' | 'forecast'>('dashboard');
   const [isSimulatingAction, setIsSimulatingAction] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -126,6 +126,27 @@ const LandingPage: React.FC = () => {
           ],
     [isArabic]
   );
+
+  const monthlyCollections = useMemo(() => {
+    const labels = isArabic
+      ? ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر']
+      : ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const values = [620, 540, 730, 680, 820, 760, 880, 710, 790, 920, 660, 840];
+    return labels.map((label, index) => ({ label, value: values[index] }));
+  }, [isArabic]);
+
+  const maxMonthlyCollection = useMemo(
+    () => Math.max(...monthlyCollections.map(item => item.value)),
+    [monthlyCollections]
+  );
+
+  const forecastData = useMemo(() => {
+    const labels = isArabic
+      ? ['الربع القادم', 'النصف الثاني', 'نهاية العام']
+      : ['Next Quarter', 'Second Half', 'Year End'];
+    const values = [2.6, 5.4, 9.8];
+    return labels.map((label, index) => ({ label, value: values[index] }));
+  }, [isArabic]);
 
   // Agentic Application State
   const [dreamIdea, setDreamIdea] = useState('');
@@ -364,7 +385,7 @@ const LandingPage: React.FC = () => {
                 key={item.id}
                 href={`#${item.id}`}
                 onClick={scrollToSection(item.id)}
-                className={`text-[11px] font-black text-slate-400 hover:text-primary transition-all uppercase tracking-[0.4em] hover-scale stagger-${idx + 1}`}
+                className={`text-sm md:text-base font-black text-slate-300 hover:text-primary transition-all hover-scale stagger-${idx + 1} ${isArabic ? 'tracking-normal' : 'uppercase tracking-[0.35em]'}`}
               >
                 {item.label}
               </a>
@@ -586,7 +607,8 @@ const LandingPage: React.FC = () => {
                   { id: 'students', label: t('Students', 'الطلاب'), icon: 'school' },
                   { id: 'transactions', label: t('Transactions', 'المعاملات'), icon: 'receipt_long' },
                   { id: 'teachers', label: t('Teachers', 'المدرسين'), icon: 'person' },
-                  { id: 'overdue', label: t('Overdue', 'المتأخرات'), icon: 'warning' }
+                  { id: 'overdue', label: t('Overdue', 'المتأخرات'), icon: 'warning' },
+                  { id: 'forecast', label: t('Forecast', 'التوقعات'), icon: 'insights' }
                 ].map(tab => (
                   <button
                     key={tab.id}
@@ -632,13 +654,14 @@ const LandingPage: React.FC = () => {
                         {t('Monthly Collections', 'التحصيل الشهري')}
                       </h4>
                       <div className="h-40 flex items-end justify-between gap-2">
-                        {[65, 45, 80, 55, 90, 70, 85, 60, 75, 95, 50, 88].map((h, i) => (
-                          <div key={i} className="flex-1 flex flex-col items-center gap-1">
+                        {monthlyCollections.map((item, i) => (
+                          <div key={item.label} className="flex-1 flex flex-col items-center gap-1">
+                            <span className="text-[8px] text-slate-500 font-bold">{item.value}K {currency}</span>
                             <div
                               className="w-full bg-gradient-to-t from-primary/60 to-primary rounded-t-md chart-bar"
-                              style={{ height: `${h}%`, animationDelay: `${i * 0.05}s` }}
+                              style={{ height: `${Math.round((item.value / maxMonthlyCollection) * 100)}%`, animationDelay: `${i * 0.05}s` }}
                             />
-                            <span className="text-[8px] text-slate-600">{i + 1}</span>
+                            <span className="text-[8px] text-slate-600">{item.label}</span>
                           </div>
                         ))}
                       </div>
@@ -875,6 +898,57 @@ const LandingPage: React.FC = () => {
                         </div>
                       </div>
                     ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Forecast Tab */}
+              {crmActiveTab === 'forecast' && (
+                <div className="space-y-6 animate-slide-up">
+                  <div className="flex flex-wrap items-center justify-between gap-4">
+                    <div>
+                      <h4 className="text-lg font-black">{t('Future Predictions', 'توقعات المستقبل')}</h4>
+                      <p className="text-sm text-slate-500">{t('AI-driven revenue outlook based on current trends.', 'توقعات الإيرادات بالذكاء الاصطناعي بناءً على الاتجاهات الحالية.')}</p>
+                    </div>
+                    <div className="flex items-center gap-2 text-xs text-emerald-400 font-bold">
+                      <span className="size-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                      {t('Updated today', 'محدّث اليوم')}
+                    </div>
+                  </div>
+
+                  <div className="grid md:grid-cols-3 gap-4">
+                    {forecastData.map((item, idx) => (
+                      <div key={item.label} className={`presentation-card p-5 rounded-2xl animate-slide-up stagger-${Math.min(idx + 1, 3)}`}>
+                        <p className="text-xs text-slate-500 font-black uppercase tracking-widest">{item.label}</p>
+                        <p className="text-3xl font-black text-primary mt-3">{item.value.toFixed(1)}M {currency}</p>
+                        <p className="text-[10px] text-slate-500 mt-2">{t('Projected collections', 'الإيرادات المتوقعة')}</p>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="bg-background-dark/50 rounded-2xl p-6 border border-white/5">
+                    <h5 className="text-sm font-black mb-4 flex items-center gap-2">
+                      <span className="material-symbols-outlined text-primary">insights</span>
+                      {t('Key Drivers', 'أهم العوامل')}
+                    </h5>
+                    <div className="grid md:grid-cols-2 gap-4 text-sm text-slate-400">
+                      <div className="flex items-start gap-3">
+                        <span className="material-symbols-outlined text-primary">check_circle</span>
+                        <span>{t('Higher on-time payments due to WhatsApp automation.', 'زيادة الدفع في المواعيد بسبب أتمتة واتساب.')}</span>
+                      </div>
+                      <div className="flex items-start gap-3">
+                        <span className="material-symbols-outlined text-primary">check_circle</span>
+                        <span>{t('Improved retention and fee collection efficiency.', 'تحسن الاستمرارية وكفاءة التحصيل.')}</span>
+                      </div>
+                      <div className="flex items-start gap-3">
+                        <span className="material-symbols-outlined text-primary">check_circle</span>
+                        <span>{t('Seasonal peak during enrollment cycles.', 'ذروة موسمية خلال دورات التسجيل.')}</span>
+                      </div>
+                      <div className="flex items-start gap-3">
+                        <span className="material-symbols-outlined text-primary">check_circle</span>
+                        <span>{t('Automated follow-ups reducing overdue balances.', 'متابعات تلقائية تقلل المتأخرات.')}</span>
+                      </div>
+                    </div>
                   </div>
                 </div>
               )}
