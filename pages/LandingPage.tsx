@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import Logo from '../components/Logo';
 
 // Types for the interactive demos
@@ -88,6 +88,8 @@ const LandingPage: React.FC = () => {
   const [selectedCapabilities, setSelectedCapabilities] = useState<string[]>([]);
   const [isAgentBuilding, setIsAgentBuilding] = useState(false);
   const [agentBuildProgress, setAgentBuildProgress] = useState(0);
+  const [isMobile, setIsMobile] = useState(false);
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
 
   const agentCapabilities: AgentCapability[] = [
     { id: 'data', icon: 'database', name: 'Data Analysis', description: 'Process and analyze large datasets automatically' },
@@ -117,6 +119,27 @@ const LandingPage: React.FC = () => {
     }, interval);
 
     return () => clearInterval(timer);
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const mobileQuery = window.matchMedia('(max-width: 768px)');
+    const motionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+
+    const updateMobile = () => setIsMobile(mobileQuery.matches);
+    const updateMotion = () => setPrefersReducedMotion(motionQuery.matches);
+
+    updateMobile();
+    updateMotion();
+
+    mobileQuery.addEventListener('change', updateMobile);
+    motionQuery.addEventListener('change', updateMotion);
+
+    return () => {
+      mobileQuery.removeEventListener('change', updateMobile);
+      motionQuery.removeEventListener('change', updateMotion);
+    };
   }, []);
 
   const scrollToSection = (id: string) => (e: React.MouseEvent) => {
@@ -214,18 +237,30 @@ const LandingPage: React.FC = () => {
   const overdueStudents = students.filter(s => s.status === 'overdue');
   const totalPending = students.reduce((sum, s) => sum + s.remaining, 0);
 
+  const particleCount = isMobile ? 8 : 20;
+  const particles = useMemo(
+    () =>
+      Array.from({ length: particleCount }, () => ({
+        left: `${Math.random() * 100}%`,
+        top: `${Math.random() * 100}%`,
+        delay: `${Math.random() * 5}s`,
+        duration: `${8 + Math.random() * 10}s`,
+      })),
+    [particleCount]
+  );
+
   // Floating particles component
   const FloatingParticles = () => (
     <div className="particles">
-      {[...Array(20)].map((_, i) => (
+      {particles.map((particle, i) => (
         <div
           key={i}
           className="particle"
           style={{
-            left: `${Math.random() * 100}%`,
-            top: `${Math.random() * 100}%`,
-            animationDelay: `${Math.random() * 5}s`,
-            animationDuration: `${8 + Math.random() * 10}s`
+            left: particle.left,
+            top: particle.top,
+            animationDelay: particle.delay,
+            animationDuration: particle.duration
           }}
         />
       ))}
@@ -236,16 +271,16 @@ const LandingPage: React.FC = () => {
     <div className="min-h-screen text-slate-100">
       {/* Dynamic Background with Floating Particles */}
       <div className="fixed inset-0 pointer-events-none z-0">
-        <div className="absolute top-[5%] left-[10%] w-[50vw] h-[50vw] bg-primary/5 blur-[120px] rounded-full animate-glow-pulse animate-morph"></div>
-        <div className="absolute bottom-[10%] right-[10%] w-[40vw] h-[40vw] bg-indigo-500/5 blur-[120px] rounded-full animate-glow-pulse" style={{ animationDelay: '2s' }}></div>
+        <div className="hidden sm:block absolute top-[5%] left-[10%] w-[50vw] h-[50vw] bg-primary/5 blur-[120px] rounded-full animate-glow-pulse animate-morph"></div>
+        <div className="hidden sm:block absolute bottom-[10%] right-[10%] w-[40vw] h-[40vw] bg-indigo-500/5 blur-[120px] rounded-full animate-glow-pulse" style={{ animationDelay: '2s' }}></div>
         <div className="absolute top-[50%] left-[50%] w-[30vw] h-[30vw] bg-violet-500/3 blur-[100px] rounded-full animate-float" style={{ animationDelay: '1s' }}></div>
-        <FloatingParticles />
+        {!prefersReducedMotion && <FloatingParticles />}
       </div>
 
       {/* Floating Header */}
       <div className="fixed top-6 left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-7xl z-50">
         <nav className="h-20 md:h-24 flex items-center justify-between px-6 md:px-12 bg-surface-dark/40 backdrop-blur-3xl border border-white/10 rounded-[2rem] shadow-2xl animate-slide-up hover-glow">
-          <Logo size={180} showText={false} className="!items-start" />
+          <Logo size={360} showText={false} className="!items-start scale-75 sm:scale-100 origin-left" />
           <div className="hidden lg:flex items-center gap-10">
             {['Solutions', 'Process', 'Finance', 'Agentic-Future'].map((item, idx) => (
               <a
@@ -258,12 +293,7 @@ const LandingPage: React.FC = () => {
               </a>
             ))}
           </div>
-          <div className="flex items-center gap-4">
-             <span className="text-primary text-[10px] font-black uppercase tracking-[0.3em] px-4 py-2 border border-primary/20 rounded-full bg-primary/5 animate-glow">
-               <span className="inline-block size-2 bg-emerald-500 rounded-full mr-2 animate-pulse"></span>
-               Presentation Mode
-             </span>
-          </div>
+          <div className="flex items-center gap-4" />
         </nav>
       </div>
 
@@ -791,9 +821,9 @@ const LandingPage: React.FC = () => {
       <section id="agentic-future" className="relative z-10 max-w-7xl mx-auto px-6 py-24 md:py-32 border-t border-white/5">
         <div className="text-center mb-16 animate-slide-up">
           <p className="text-primary text-[10px] font-black uppercase tracking-[0.3em] mb-4">THE FUTURE OF AUTOMATION</p>
-          <h2 className="text-4xl md:text-6xl font-extrabold tracking-tight leading-tight">Build Your Own<br /><span className="gradient-text-animated">AI Agent</span></h2>
+          <h2 className="text-4xl md:text-6xl font-extrabold tracking-tight leading-tight">Build your own<br /><span className="gradient-text-animated">agentic AI application</span></h2>
           <p className="text-lg md:text-xl text-slate-400 font-medium max-w-2xl mx-auto mt-6">
-            Transform any idea into a powerful AI-powered application. Design, build, and deploy custom agents that understand your needs.
+            Share your idea and we will shape it into a production-ready agentic application tailored to your workflows.
           </p>
         </div>
 
@@ -813,8 +843,8 @@ const LandingPage: React.FC = () => {
                     </div>
                   </div>
                   <div>
-                    <h3 className="text-2xl font-black mb-2">Building Your Agent...</h3>
-                    <p className="text-slate-400">AI is configuring your custom agent</p>
+                    <h3 className="text-2xl font-black mb-2">Building Your Application...</h3>
+                    <p className="text-slate-400">AI is configuring your custom agentic app</p>
                   </div>
                   <div className="max-w-md mx-auto">
                     <div className="progress-bar h-3">
@@ -829,9 +859,9 @@ const LandingPage: React.FC = () => {
                     <span className="material-symbols-outlined text-5xl">rocket_launch</span>
                   </div>
                   <div>
-                    <h3 className="text-3xl font-black mb-3">Your Agent is Ready!</h3>
+                    <h3 className="text-3xl font-black mb-3">Your Agentic App is Ready!</h3>
                     <p className="text-slate-400 text-lg max-w-md mx-auto">
-                      Your custom AI agent with <span className="text-primary font-bold">{selectedCapabilities.length} capabilities</span> has been configured and is ready for deployment.
+                      Your custom agentic application with <span className="text-primary font-bold">{selectedCapabilities.length} capabilities</span> has been configured and is ready for deployment.
                     </p>
                   </div>
 
@@ -842,7 +872,7 @@ const LandingPage: React.FC = () => {
                         <span className="material-symbols-outlined text-background-dark">smart_toy</span>
                       </div>
                       <div>
-                        <p className="font-black">Custom Agent</p>
+                        <p className="font-black">Agentic Application</p>
                         <p className="text-xs text-emerald-500">Active & Ready</p>
                       </div>
                     </div>
@@ -862,14 +892,14 @@ const LandingPage: React.FC = () => {
                     onClick={() => {setIsDreamSubmitted(false); setSelectedCapabilities([]); setDreamIdea(''); setAgentBuildProgress(0);}}
                     className="px-8 py-4 bg-white/5 border border-white/10 rounded-2xl text-sm font-black uppercase tracking-widest hover:border-primary transition-all"
                   >
-                    Build Another Agent
+                    Build Another App
                   </button>
                 </div>
               ) : (
                 <>
                   <div className="space-y-2">
-                    <h3 className="text-2xl font-black tracking-tight">AI Agent Builder</h3>
-                    <p className="text-sm text-slate-400 font-medium">Select capabilities and describe your vision</p>
+                    <h3 className="text-2xl font-black tracking-tight">Agentic App Builder</h3>
+                    <p className="text-sm text-slate-400 font-medium">Select capabilities and describe your idea</p>
                   </div>
 
                   {/* Capability Selection */}
@@ -896,11 +926,11 @@ const LandingPage: React.FC = () => {
 
                   <form onSubmit={handleDreamSubmit} className="space-y-6">
                     <div className="space-y-2">
-                      <p className="text-xs font-black uppercase tracking-widest text-slate-500">Describe Your Vision</p>
+                      <p className="text-xs font-black uppercase tracking-widest text-slate-500">Describe Your Idea</p>
                       <textarea
                         value={dreamIdea}
                         onChange={(e) => setDreamIdea(e.target.value)}
-                        placeholder="I want an AI that can automatically analyze student attendance patterns, predict potential dropouts, and send personalized intervention recommendations to counselors..."
+                        placeholder="Describe the app you want to build, the users, and the outcome you need..."
                         className="w-full h-32 bg-background-dark/80 border border-white/10 rounded-2xl p-4 text-sm font-medium focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all resize-none"
                       />
                     </div>
@@ -909,7 +939,7 @@ const LandingPage: React.FC = () => {
                       disabled={selectedCapabilities.length === 0 && !dreamIdea.trim()}
                       className="w-full py-5 bg-gradient-to-r from-primary to-indigo-500 text-background-dark rounded-2xl text-sm font-black uppercase tracking-[0.2em] shadow-2xl shadow-primary/30 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-4 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      Build My AI Agent
+                      Build My Agentic App
                       <span className="material-symbols-outlined">auto_awesome</span>
                     </button>
                   </form>
@@ -970,7 +1000,7 @@ const LandingPage: React.FC = () => {
             </button>
           </div>
           <div className="mt-24 pt-16 flex flex-col items-center opacity-40">
-             <Logo size={200} showText={false} />
+             <Logo size={420} showText={false} className="scale-75 sm:scale-100" />
              <p className="text-[10px] font-black uppercase tracking-[0.4em] text-primary mt-6">Propelling Educational Intelligence</p>
           </div>
         </div>
