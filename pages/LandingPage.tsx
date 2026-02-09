@@ -2,6 +2,18 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import Logo from '../components/Logo';
 
+// Lightweight hook to track window width without re-rendering on every resize
+const useIsMobile = () => {
+  const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' ? window.innerWidth < 768 : false);
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 767px)');
+    const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches);
+    mq.addEventListener('change', handler);
+    return () => mq.removeEventListener('change', handler);
+  }, []);
+  return isMobile;
+};
+
 // Types for the interactive demos
 interface Student {
   id: string;
@@ -161,6 +173,13 @@ const LandingPage: React.FC = () => {
 
   // Chat auto-scroll ref
   const chatContainerRef = useRef<HTMLDivElement>(null);
+  const mainRef = useRef<HTMLElement>(null);
+  const isMobile = useIsMobile();
+
+  // Touch swipe state for mobile slide navigation
+  const touchStartX = useRef<number | null>(null);
+  const touchStartY = useRef<number | null>(null);
+  const touchEndX = useRef<number | null>(null);
 
   const agentCapabilities: AgentCapability[] = isArabic
     ? [
@@ -229,8 +248,8 @@ const LandingPage: React.FC = () => {
   }, [language]);
 
   // Slide navigation
-  const nextSlide = () => { if (currentSlide < totalSlides - 1) setCurrentSlide(prev => prev + 1); };
-  const prevSlide = () => { if (currentSlide > 0) setCurrentSlide(prev => prev - 1); };
+  const nextSlide = useCallback(() => { if (currentSlide < totalSlides - 1) setCurrentSlide(prev => prev + 1); }, [currentSlide, totalSlides]);
+  const prevSlide = useCallback(() => { if (currentSlide > 0) setCurrentSlide(prev => prev - 1); }, [currentSlide]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -239,7 +258,38 @@ const LandingPage: React.FC = () => {
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [currentSlide]);
+  }, [nextSlide, prevSlide]);
+
+  // Mobile swipe handlers
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+    touchStartY.current = e.touches[0].clientY;
+    touchEndX.current = null;
+  }, []);
+
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    touchEndX.current = e.touches[0].clientX;
+  }, []);
+
+  const handleTouchEnd = useCallback(() => {
+    if (touchStartX.current === null || touchEndX.current === null || touchStartY.current === null) return;
+    const deltaX = touchStartX.current - touchEndX.current;
+    const deltaY = Math.abs((touchStartY.current || 0) - (touchEndX.current || 0));
+    const minSwipe = 60;
+    // Only navigate if horizontal swipe is dominant
+    if (Math.abs(deltaX) > minSwipe && Math.abs(deltaX) > deltaY) {
+      if (isArabic) {
+        // RTL: swipe left = prev, swipe right = next
+        if (deltaX > 0) prevSlide(); else nextSlide();
+      } else {
+        // LTR: swipe left = next, swipe right = prev
+        if (deltaX > 0) nextSlide(); else prevSlide();
+      }
+    }
+    touchStartX.current = null;
+    touchEndX.current = null;
+    touchStartY.current = null;
+  }, [nextSlide, prevSlide, isArabic]);
 
   const handleChatSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -348,11 +398,15 @@ const LandingPage: React.FC = () => {
 
   return (
     <div className="h-screen bg-background-dark text-slate-100 overflow-hidden flex flex-col font-sans" dir={isArabic ? 'rtl' : 'ltr'}>
-      {/* Background Effects */}
+      {/* Background Effects - simplified on mobile for performance */}
       <div className="fixed inset-0 pointer-events-none z-0">
-        <div className="absolute top-[5%] left-[10%] w-[50vw] h-[50vw] bg-primary/5 blur-[150px] rounded-full animate-glow-pulse"></div>
-        <div className="absolute bottom-[10%] right-[10%] w-[40vw] h-[40vw] bg-indigo-500/5 blur-[150px] rounded-full animate-glow-pulse" style={{ animationDelay: '2s' }}></div>
-        <div className="absolute top-[50%] left-[50%] -translate-x-1/2 -translate-y-1/2 w-[30vw] h-[30vw] bg-purple-500/3 blur-[120px] rounded-full animate-glow-pulse" style={{ animationDelay: '4s' }}></div>
+        <div className="absolute top-[5%] left-[10%] w-[50vw] h-[50vw] bg-primary/5 blur-[100px] md:blur-[150px] rounded-full md:animate-glow-pulse will-change-transform"></div>
+        {!isMobile && (
+          <>
+            <div className="absolute bottom-[10%] right-[10%] w-[40vw] h-[40vw] bg-indigo-500/5 blur-[150px] rounded-full animate-glow-pulse will-change-transform" style={{ animationDelay: '2s' }}></div>
+            <div className="absolute top-[50%] left-[50%] -translate-x-1/2 -translate-y-1/2 w-[30vw] h-[30vw] bg-purple-500/3 blur-[120px] rounded-full animate-glow-pulse will-change-transform" style={{ animationDelay: '4s' }}></div>
+          </>
+        )}
       </div>
 
       {/* Enhanced Animation Styles */}
@@ -410,20 +464,33 @@ const LandingPage: React.FC = () => {
         .hover-scale { transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
         .hover-scale:hover { transform: scale(1.03); }
         .hover-glow:hover { box-shadow: 0 0 30px rgba(161,158,255,0.2); }
+        /* Performance: GPU acceleration for slide transitions */
+        main { will-change: auto; -webkit-backface-visibility: hidden; backface-visibility: hidden; }
+        /* Reduce animations on mobile for better perf */
+        @media (max-width: 768px) {
+          .anim-slide-up, .anim-slide-down, .anim-slide-left, .anim-slide-right { animation-duration: 0.4s; }
+          .anim-scale-in, .anim-fade-blur, .anim-bounce-in, .anim-slide-in-bounce { animation-duration: 0.35s; }
+          .anim-pulse-glow { animation: none; }
+          .anim-float { animation: none; }
+          .hover-lift:hover { transform: none; }
+        }
+        /* Swipe hint animation */
+        @keyframes swipeHint { 0%,100% { transform: translateX(0); opacity: 0.5; } 50% { transform: translateX(-8px); opacity: 1; } }
+        .swipe-hint { animation: swipeHint 2s ease-in-out 3; }
       `}</style>
 
       {/* Minimal Presentation Header */}
-      <div className="relative z-50 flex items-center justify-between px-8 md:px-16 py-4 bg-surface-dark/40 backdrop-blur-3xl border-b border-white/5">
-        <Logo size={40} showText={false} className="!items-start" />
-        <div className="flex items-center gap-6">
+      <div className="relative z-50 flex items-center justify-between px-3 sm:px-8 md:px-16 py-2.5 sm:py-4 bg-surface-dark/40 backdrop-blur-xl md:backdrop-blur-3xl border-b border-white/5">
+        <Logo size={isMobile ? 28 : 40} showText={false} className="!items-start" />
+        <div className="flex items-center gap-2 sm:gap-6">
           <p className="text-primary text-[10px] font-black uppercase tracking-[0.3em] hidden md:block">
             {t('Strategy Session 2025', 'جلسة استراتيجية 2025')}
           </p>
           <div className="h-6 w-px bg-white/10 hidden md:block"></div>
-          <h2 className="text-sm md:text-base font-black uppercase tracking-widest">{slideTitles[currentSlide]}</h2>
+          <h2 className="text-[11px] sm:text-sm md:text-base font-black uppercase tracking-wider sm:tracking-widest truncate max-w-[140px] sm:max-w-none">{slideTitles[currentSlide]}</h2>
           <button
             onClick={() => setLanguage(isArabic ? 'en' : 'ar')}
-            className="px-3 py-1.5 rounded-full border border-primary/30 text-[10px] font-black uppercase tracking-[0.2em] text-primary hover:bg-primary/10 transition-all"
+            className="px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-full border border-primary/30 text-[10px] font-black uppercase tracking-[0.2em] text-primary hover:bg-primary/10 transition-all"
           >
             {isArabic ? 'EN' : 'ع'}
           </button>
@@ -431,13 +498,19 @@ const LandingPage: React.FC = () => {
       </div>
 
       {/* Slide Content */}
-      <main className="relative z-10 flex-1 overflow-y-auto px-4 sm:px-6 md:px-16 lg:px-24 py-6 md:py-12">
+      <main
+        ref={mainRef}
+        className="relative z-10 flex-1 overflow-y-auto px-3 sm:px-6 md:px-16 lg:px-24 py-4 sm:py-6 md:py-12 touch-pan-y"
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+      >
 
         {/* ==================== SLIDE 0: WHO WE ARE ==================== */}
         {currentSlide === 0 && (
           <div className="h-full flex flex-col justify-center items-center text-center space-y-4 md:space-y-6">
             <div className="anim-scale-in">
-              <Logo size={window.innerWidth < 80 ? 50 : 100} showText={false} />
+              <Logo size={isMobile ? 50 : 100} showText={false} />
             </div>
             <div className="space-y-3 anim-slide-up delay-200">
               <p className="text-primary text-[10px] font-black uppercase tracking-[0.5em]">{t('// SEEKERS AI', '// سيكرز للذكاء الاصطناعي')}</p>
@@ -471,10 +544,10 @@ const LandingPage: React.FC = () => {
               <p className="text-[10px] font-black uppercase tracking-[0.4em] text-slate-500">{t('Currently Partnering With', 'نعمل حالياً مع')}</p>
               <div className="flex items-center justify-center gap-4 sm:gap-8">
                 <div className="h-16 sm:h-20 md:h-24 px-4 sm:px-6 bg-white/5 border border-white/10 rounded-2xl flex items-center justify-center hover:border-primary/30 transition-all anim-pulse-glow">
-                  <img src="https://raw.githubusercontent.com/Dessouky13/School-demo/main/rajac-language-schools.png" alt="Rajac International School" className="h-10 sm:h-14 md:h-18 object-contain" />
+                  <img src="https://raw.githubusercontent.com/Dessouky13/School-demo/main/rajac-language-schools.png" alt="Rajac International School" loading="lazy" className="h-10 sm:h-14 md:h-18 object-contain" />
                 </div>
                 <div className="h-16 sm:h-20 md:h-24 px-4 sm:px-6 bg-white/5 border border-white/10 rounded-2xl flex items-center justify-center hover:border-primary/30 transition-all anim-pulse-glow">
-                  <img src="https://raw.githubusercontent.com/Dessouky13/School-demo/main/Genesis-Logo-BlueBG-.png" alt="Genesis International School" className="h-10 sm:h-14 md:h-18 object-contain" />
+                  <img src="https://raw.githubusercontent.com/Dessouky13/School-demo/main/Genesis-Logo-BlueBG-.png" alt="Genesis International School" loading="lazy" className="h-10 sm:h-14 md:h-18 object-contain" />
                 </div>
               </div>
             </div>
@@ -587,7 +660,7 @@ const LandingPage: React.FC = () => {
                   <span className="px-3 py-1.5 bg-red-500/20 text-red-400 rounded-full text-[10px] sm:text-xs font-black uppercase tracking-widest anim-pulse-glow">{t('No Response 24h+', 'بدون رد +24 ساعة')}</span>
                 </div>
                 <div className="rounded-2xl overflow-hidden border border-white/10 bg-black/30 anim-scale-in delay-300">
-                  <img src="https://raw.githubusercontent.com/Dessouky13/School-demo/main/Instagram%20DM.jpeg" alt="Instagram DM - No response after 24 hours to student transfer inquiry" className="w-full h-auto max-h-[55vh] object-contain" />
+                  <img src="https://raw.githubusercontent.com/Dessouky13/School-demo/main/Instagram%20DM.jpeg" alt="Instagram DM - No response after 24 hours to student transfer inquiry" loading="lazy" className="w-full h-auto max-h-[40vh] sm:max-h-[55vh] object-contain" />
                 </div>
                 <p className="text-xs sm:text-sm text-slate-400 font-medium">{t('A parent asked about student transfer — no response after 24 hours.', 'ولي أمر سأل عن تحويل طالب — مفيش رد بعد 24 ساعة.')}</p>
               </div>
@@ -606,7 +679,7 @@ const LandingPage: React.FC = () => {
                   <span className="px-3 py-1.5 bg-red-500/20 text-red-400 rounded-full text-[10px] sm:text-xs font-black uppercase tracking-widest anim-pulse-glow">{t('No Replies for Weeks', 'بدون رد لأسابيع')}</span>
                 </div>
                 <div className="rounded-2xl overflow-hidden border border-white/10 bg-black/30 anim-scale-in delay-400">
-                  <img src="https://raw.githubusercontent.com/Dessouky13/School-demo/main/Facebook%20comments.jpeg" alt="Facebook comments with no replies for weeks on marketing posts" className="w-full h-auto max-h-[55vh] object-contain" />
+                  <img src="https://raw.githubusercontent.com/Dessouky13/School-demo/main/Facebook%20comments.jpeg" alt="Facebook comments with no replies for weeks on marketing posts" loading="lazy" className="w-full h-auto max-h-[40vh] sm:max-h-[55vh] object-contain" />
                 </div>
                 <p className="text-xs sm:text-sm text-slate-400 font-medium">{t('Marketing post comments left completely unanswered for weeks.', 'تعليقات على بوست تسويقي متسابة من غير أي رد لأسابيع.')}</p>
               </div>
@@ -616,18 +689,18 @@ const LandingPage: React.FC = () => {
 
         {/* ==================== SLIDE 4: SOLUTION 01 - LEAD CAPTURE ==================== */}
         {currentSlide === 4 && (
-          <div className="max-w-7xl mx-auto space-y-6">
-            <div className="grid lg:grid-cols-2 gap-10 items-start">
-              <div className="space-y-5">
+          <div className="max-w-7xl mx-auto space-y-4 sm:space-y-6">
+            <div className="grid lg:grid-cols-2 gap-6 lg:gap-10 items-start">
+              <div className="space-y-3 sm:space-y-5">
                 <div>
-                  <p className="text-primary text-xs font-black uppercase tracking-[0.3em] mb-3">{t('SOLUTION 01', 'الحل 01')}</p>
-                  <h2 className="text-3xl md:text-5xl font-extrabold tracking-tight">{t('24/7 Lead Capture', 'التقاط العملاء على مدار الساعة')} <br />{t('& Conversion', 'والتحويل')}</h2>
+                  <p className="text-primary text-[10px] sm:text-xs font-black uppercase tracking-[0.3em] mb-2 sm:mb-3">{t('SOLUTION 01', 'الحل 01')}</p>
+                  <h2 className="text-2xl sm:text-3xl md:text-5xl font-extrabold tracking-tight">{t('24/7 Lead Capture', 'التقاط العملاء على مدار الساعة')} <br />{t('& Conversion', 'والتحويل')}</h2>
                 </div>
-                <div className="presentation-card p-5 rounded-[1.5rem] space-y-2">
-                  <p className="text-red-400 font-black text-base uppercase tracking-widest">{t('The Problem:', 'المشكلة:')}</p>
-                  <p className="text-slate-400 text-base">{t('Schools lose 60% of prospective parents who message after hours or during peak enrollment periods.', 'المدارس بتخسر 60% من أولياء الأمور اللي بيتواصلوا بعد المواعيد أو وقت الزحمة.')}</p>
+                <div className="presentation-card p-3 sm:p-5 rounded-xl sm:rounded-[1.5rem] space-y-1.5 sm:space-y-2">
+                  <p className="text-red-400 font-black text-sm sm:text-base uppercase tracking-widest">{t('The Problem:', 'المشكلة:')}</p>
+                  <p className="text-slate-400 text-xs sm:text-base">{t('Schools lose 60% of prospective parents who message after hours or during peak enrollment periods.', 'المدارس بتخسر 60% من أولياء الأمور اللي بيتواصلوا بعد المواعيد أو وقت الزحمة.')}</p>
                 </div>
-                <ul className="space-y-3">
+                <ul className="space-y-2 sm:space-y-3 hidden sm:block">
                   {[
                     t('Implemented at Global International Institutions', 'مطبق في مؤسسات تعليمية دولية'),
                     t('Average 3x increase in lead capture rate', 'زيادة 3 أضعاف في معدل التقاط العملاء'),
@@ -638,15 +711,15 @@ const LandingPage: React.FC = () => {
                     t('Monthly & weekly analytics reports with lead & conversation tracking', 'تقارير تحليلية شهرية وأسبوعية لتتبع العملاء والمحادثات'),
                     t('Instant knowledge base updates', 'تحديثات فورية لقاعدة المعرفة')
                   ].map((item, idx) => (
-                    <li key={idx} className="flex items-start gap-3 text-slate-300 font-bold">
-                      <span className="material-symbols-outlined text-primary shrink-0 text-xl">check_circle</span>
-                      <span className="text-base">{item}</span>
+                    <li key={idx} className="flex items-start gap-2 sm:gap-3 text-slate-300 font-bold">
+                      <span className="material-symbols-outlined text-primary shrink-0 text-base sm:text-xl">check_circle</span>
+                      <span className="text-xs sm:text-base">{item}</span>
                     </li>
                   ))}
                 </ul>
               </div>
-              <div className="presentation-card rounded-[2rem] p-3 bg-slate-900/50 border-white/5 shadow-2xl">
-                <div className="bg-background-dark/80 rounded-[1.5rem] overflow-hidden flex flex-col h-[500px]">
+              <div className="presentation-card rounded-xl sm:rounded-[2rem] p-2 sm:p-3 bg-slate-900/50 border-white/5 shadow-2xl">
+                <div className="bg-background-dark/80 rounded-xl sm:rounded-[1.5rem] overflow-hidden flex flex-col h-[350px] sm:h-[500px]">
                   <div className="p-4 bg-surface-dark border-b border-white/5 flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <div className="size-10 rounded-full bg-primary/20 flex items-center justify-center text-primary">
@@ -705,23 +778,24 @@ const LandingPage: React.FC = () => {
               </div>
 
               {/* QR Code Section */}
-              <div className="presentation-card p-4 sm:p-6 rounded-2xl anim-slide-up delay-400 flex flex-col sm:flex-row items-center gap-4 sm:gap-6">
+              <div className="lg:col-span-2 presentation-card p-3 sm:p-6 rounded-xl sm:rounded-2xl anim-slide-up delay-400 flex flex-row items-center gap-3 sm:gap-6">
                 <div className="shrink-0">
                   <img
                     src={`https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=https://www.demo.seekersai.org&bgcolor=0f172a&color=a19eff&format=png`}
                     alt="QR Code - Try the demo"
-                    className="size-28 sm:size-36 rounded-xl border-2 border-primary/30 p-1 bg-white"
+                    className="size-20 sm:size-36 rounded-lg sm:rounded-xl border-2 border-primary/30 p-0.5 sm:p-1 bg-white"
+                    loading="lazy"
                   />
                 </div>
-                <div className="text-center sm:text-start space-y-2">
-                  <h4 className="text-base sm:text-lg font-black flex items-center gap-2 justify-center sm:justify-start">
-                    <span className="material-symbols-outlined text-primary">qr_code_2</span>
+                <div className="space-y-1 sm:space-y-2">
+                  <h4 className="text-sm sm:text-lg font-black flex items-center gap-1.5 sm:gap-2">
+                    <span className="material-symbols-outlined text-primary text-base sm:text-2xl">qr_code_2</span>
                     {t('Try It Yourself!', 'جرّبها بنفسك!')}
                   </h4>
-                  <p className="text-xs sm:text-sm text-slate-400 font-medium">
+                  <p className="text-[10px] sm:text-sm text-slate-400 font-medium">
                     {t('Scan the QR code to chat with our AI admissions bot live on your phone.', 'امسح الكود عشان تتكلم مع بوت القبول الذكي من موبايلك.')}
                   </p>
-                  <p className="text-[10px] text-primary font-black uppercase tracking-widest">www.demo.seekersai.org</p>
+                  <p className="text-[9px] sm:text-[10px] text-primary font-black uppercase tracking-widest">www.demo.seekersai.org</p>
                 </div>
               </div>
             </div>
@@ -760,19 +834,19 @@ const LandingPage: React.FC = () => {
 
         {/* ==================== SLIDE 6: SOLUTION 03 - FINANCE CRM ==================== */}
         {currentSlide === 6 && (
-          <div className="max-w-7xl mx-auto space-y-4 animate-in fade-in duration-700">
-            <div className="text-center space-y-2 anim-slide-down">
+          <div className="max-w-7xl mx-auto space-y-3 sm:space-y-4">
+            <div className="text-center space-y-1.5 sm:space-y-2 anim-slide-down">
               <p className="text-primary text-[10px] font-black uppercase tracking-[0.3em]">{t('SOLUTION 03', 'الحل 03')}</p>
-              <h2 className="text-2xl sm:text-3xl md:text-5xl font-extrabold tracking-tight leading-tight">{t('Seekers Finance CRM', 'سيكرز لإدارة المالية')}</h2>
-              <p className="text-slate-400 text-sm sm:text-base font-medium max-w-3xl mx-auto px-2">{t('Complete financial management system with automated payment tracking, intelligent reminders, and real-time analytics.', 'نظام مالي متكامل لتتبع المدفوعات تلقائياً، وتنبيهات ذكية، وتحليلات لحظية.')}</p>
-              <div className="flex items-center justify-center gap-3 sm:gap-6 flex-wrap pt-2">
+              <h2 className="text-xl sm:text-3xl md:text-5xl font-extrabold tracking-tight leading-tight">{t('Seekers Finance CRM', 'سيكرز لإدارة المالية')}</h2>
+              <p className="text-slate-400 text-xs sm:text-base font-medium max-w-3xl mx-auto px-2">{t('Complete financial management system with automated payment tracking, intelligent reminders, and real-time analytics.', 'نظام مالي متكامل لتتبع المدفوعات تلقائياً، وتنبيهات ذكية، وتحليلات لحظية.')}</p>
+              <div className="flex items-center justify-center gap-2 sm:gap-6 flex-wrap pt-1 sm:pt-2">
                 {[
                   { title: t('Live Data Sync', 'مزامنة حية'), icon: 'sync' },
                   { title: t('Smart Reminders', 'تنبيهات ذكية'), icon: 'notifications' },
                   { title: t('Analytics', 'تحليلات'), icon: 'analytics' },
                   { title: t('Multi-user', 'متعدد المستخدمين'), icon: 'group' }
                 ].map((f, i) => (
-                  <div key={i} className="flex items-center gap-1.5 px-3 py-1.5 bg-white/5 border border-white/10 rounded-full text-xs font-bold">
+                  <div key={i} className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 sm:py-1.5 bg-white/5 border border-white/10 rounded-full text-[10px] sm:text-xs font-bold">
                     <span className="material-symbols-outlined text-primary text-sm">{f.icon}</span>
                     {f.title}
                   </div>
@@ -781,8 +855,8 @@ const LandingPage: React.FC = () => {
             </div>
 
             {/* Full-width Interactive CRM Demo UI */}
-            <div className="presentation-card rounded-[2rem] overflow-hidden bg-slate-900/60 border-white/5 shadow-2xl anim-scale-in delay-200">
-                <div className="p-3 bg-surface-dark/80 border-b border-white/5 flex flex-wrap justify-between items-center gap-3">
+            <div className="presentation-card rounded-xl sm:rounded-[2rem] overflow-hidden bg-slate-900/60 border-white/5 shadow-2xl anim-scale-in delay-200">
+                <div className="p-2 sm:p-3 bg-surface-dark/80 border-b border-white/5 flex flex-wrap justify-between items-center gap-2 sm:gap-3">
                   <div className="flex items-center gap-3">
                     <div className="size-8 bg-gradient-to-br from-primary to-indigo-500 rounded-lg flex items-center justify-center text-white font-black text-sm shadow-lg">S</div>
                     <div>
@@ -812,7 +886,7 @@ const LandingPage: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="p-5 min-h-[420px] max-h-[65vh] overflow-y-auto no-scrollbar">
+                <div className="p-3 sm:p-5 min-h-[300px] sm:min-h-[420px] max-h-[55vh] sm:max-h-[65vh] overflow-y-auto no-scrollbar">
 
                   {/* Dashboard Tab */}
                   {crmActiveTab === 'dashboard' && (
@@ -1131,28 +1205,28 @@ const LandingPage: React.FC = () => {
                   )}
                 </div>
 
-                <div className="p-3 bg-surface-dark/50 border-t border-white/5 flex justify-between items-center">
-                  <div className="flex items-center gap-6">
+                <div className="p-2 sm:p-3 bg-surface-dark/50 border-t border-white/5 flex flex-wrap justify-between items-center gap-2">
+                  <div className="flex items-center gap-3 sm:gap-6 flex-wrap">
                     <div className="text-center">
-                      <p className="text-xl font-black text-primary">96.4%</p>
-                      <p className="text-[10px] text-slate-500 font-black uppercase tracking-widest">{t('Collection Rate', 'نسبة التحصيل')}</p>
+                      <p className="text-sm sm:text-xl font-black text-primary">96.4%</p>
+                      <p className="text-[8px] sm:text-[10px] text-slate-500 font-black uppercase tracking-wider sm:tracking-widest">{t('Collection', 'التحصيل')}</p>
                     </div>
                     <div className="text-center">
-                      <p className="text-xl font-black text-emerald-400">+12%</p>
-                      <p className="text-[10px] text-slate-500 font-black uppercase tracking-widest">{t('vs last month', 'مقارنة بالشهر السابق')}</p>
+                      <p className="text-sm sm:text-xl font-black text-emerald-400">+12%</p>
+                      <p className="text-[8px] sm:text-[10px] text-slate-500 font-black uppercase tracking-wider sm:tracking-widest">{t('vs last mo.', 'مقارنة')}</p>
                     </div>
-                    <div className="text-center">
+                    <div className="text-center hidden sm:block">
                       <p className="text-xl font-black text-amber-400">2,450</p>
                       <p className="text-[10px] text-slate-500 font-black uppercase tracking-widest">{t('Active Students', 'طلاب نشطين')}</p>
                     </div>
-                    <div className="text-center">
+                    <div className="text-center hidden sm:block">
                       <p className="text-xl font-black text-blue-400">6</p>
                       <p className="text-[10px] text-slate-500 font-black uppercase tracking-widest">{t('Departments', 'الأقسام')}</p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <span className="size-2 bg-emerald-500 rounded-full animate-pulse"></span>
-                    <span className="text-xs text-slate-500 font-black uppercase tracking-widest">{t('Live Demo', 'عرض حي')}</span>
+                  <div className="flex items-center gap-1.5 sm:gap-2">
+                    <span className="size-1.5 sm:size-2 bg-emerald-500 rounded-full animate-pulse"></span>
+                    <span className="text-[10px] sm:text-xs text-slate-500 font-black uppercase tracking-widest">{t('Live Demo', 'عرض حي')}</span>
                   </div>
                 </div>
               </div>
@@ -1161,18 +1235,18 @@ const LandingPage: React.FC = () => {
 
         {/* ==================== SLIDE 7: AGENTIC FUTURE ==================== */}
         {currentSlide === 7 && (
-          <div className="max-w-6xl mx-auto space-y-8 animate-in fade-in duration-700">
-            <div className="text-center space-y-3">
-              <p className="text-primary text-xs font-black uppercase tracking-[0.3em]">{t('THE FUTURE OF AUTOMATION', 'مستقبل الأتمتة')}</p>
-              <h2 className="text-4xl md:text-6xl font-extrabold tracking-tight leading-tight">{t('Build your own', 'ابنِ بنفسك')}<br /><span className="gradient-text-animated">{t('agentic AI application', 'تطبيق ذكاء اصطناعي وكِيل')}</span></h2>
-              <p className="text-lg text-slate-400 font-medium max-w-2xl mx-auto">
+          <div className="max-w-6xl mx-auto space-y-4 sm:space-y-8">
+            <div className="text-center space-y-2 sm:space-y-3">
+              <p className="text-primary text-[10px] sm:text-xs font-black uppercase tracking-[0.3em]">{t('THE FUTURE OF AUTOMATION', 'مستقبل الأتمتة')}</p>
+              <h2 className="text-2xl sm:text-4xl md:text-6xl font-extrabold tracking-tight leading-tight">{t('Build your own', 'ابنِ بنفسك')}<br /><span className="gradient-text-animated">{t('agentic AI application', 'تطبيق ذكاء اصطناعي وكِيل')}</span></h2>
+              <p className="text-sm sm:text-lg text-slate-400 font-medium max-w-2xl mx-auto px-2">
                 {t('Share your idea and we will shape it into a production-ready agentic application tailored to your workflows.', 'احكي فكرتك وإحنا هنحوّلها لتطبيق وكِيل جاهز للإطلاق حسب شغلك.')}
               </p>
             </div>
 
-            <div className="grid lg:grid-cols-2 gap-8 items-start">
+            <div className="grid lg:grid-cols-2 gap-4 sm:gap-8 items-start">
               {/* Interactive Agent Builder */}
-              <div className="presentation-card p-8 rounded-[2rem] relative overflow-hidden">
+              <div className="presentation-card p-4 sm:p-8 rounded-xl sm:rounded-[2rem] relative overflow-hidden">
                 <div className="absolute inset-0 bg-gradient-to-tr from-primary/5 to-indigo-500/5"></div>
 
                 <div className="relative z-10 space-y-6">
@@ -1266,9 +1340,9 @@ const LandingPage: React.FC = () => {
                   ))}
                 </div>
 
-                <div className="presentation-card p-6 rounded-xl">
-                  <p className="text-xs font-black uppercase tracking-widest text-slate-500 mb-3">{t('Popular Use Cases', 'أمثلة شائعة')}</p>
-                  <div className="flex flex-wrap gap-2">
+                <div className="presentation-card p-3 sm:p-6 rounded-xl">
+                  <p className="text-[10px] sm:text-xs font-black uppercase tracking-widest text-slate-500 mb-2 sm:mb-3">{t('Popular Use Cases', 'أمثلة شائعة')}</p>
+                  <div className="flex flex-wrap gap-1.5 sm:gap-2">
                     {[
                       t('Student Analytics', 'تحليلات الطلاب'),
                       t('Automated Grading', 'تصحيح تلقائي'),
@@ -1279,7 +1353,7 @@ const LandingPage: React.FC = () => {
                       t('Attendance Tracking', 'متابعة الحضور'),
                       t('Fee Collection', 'تحصيل المصروفات')
                     ].map((use, idx) => (
-                      <span key={idx} className="px-4 py-2 bg-white/5 border border-white/10 rounded-full text-sm font-bold hover:border-primary hover:text-primary transition-all cursor-pointer">
+                      <span key={idx} className="px-2.5 sm:px-4 py-1.5 sm:py-2 bg-white/5 border border-white/10 rounded-full text-[10px] sm:text-sm font-bold hover:border-primary hover:text-primary transition-all cursor-pointer">
                         {use}
                       </span>
                     ))}
@@ -1322,7 +1396,7 @@ const LandingPage: React.FC = () => {
         {currentSlide === 9 && (
           <div className="h-full flex flex-col justify-center items-center text-center space-y-8 sm:space-y-12">
             <div className="anim-bounce-in">
-              <Logo size={window.innerWidth < 768 ? 60 : 100} showText={false} />
+              <Logo size={isMobile ? 60 : 100} showText={false} />
             </div>
             <h2 className="text-4xl sm:text-5xl md:text-8xl font-extrabold tracking-tighter leading-tight gradient-text-animated anim-slide-up delay-200">
               {t('Thank You!', '!شكرًا لك')}
@@ -1336,31 +1410,31 @@ const LandingPage: React.FC = () => {
       </main>
 
       {/* Bottom Slide Navigation */}
-      <div className="relative z-50 flex items-center justify-center gap-6 bg-surface-dark/80 backdrop-blur-3xl border-t border-white/5 px-8 py-3">
+      <div className="relative z-50 flex items-center justify-center gap-3 sm:gap-6 bg-surface-dark/80 backdrop-blur-xl md:backdrop-blur-3xl border-t border-white/5 px-3 sm:px-8 py-2 sm:py-3">
         <button
           onClick={prevSlide}
           disabled={currentSlide === 0}
-          className="size-10 rounded-full border border-white/10 flex items-center justify-center hover:bg-primary hover:text-background-dark disabled:opacity-30 disabled:pointer-events-none transition-all"
+          className="size-8 sm:size-10 rounded-full border border-white/10 flex items-center justify-center hover:bg-primary hover:text-background-dark disabled:opacity-30 disabled:pointer-events-none transition-all active:scale-90"
         >
-          <span className="material-symbols-outlined font-black">arrow_back</span>
+          <span className="material-symbols-outlined font-black text-base sm:text-2xl">arrow_back</span>
         </button>
-        <div className="flex gap-2">
+        <div className="flex gap-1.5 sm:gap-2">
           {Array.from({ length: totalSlides }).map((_, i) => (
             <button
               key={i}
               onClick={() => setCurrentSlide(i)}
-              className={`h-1.5 transition-all duration-500 rounded-full cursor-pointer ${i === currentSlide ? 'w-10 bg-primary shadow-[0_0_10px_rgba(161,158,255,0.6)]' : 'w-2 bg-white/10 hover:bg-white/20'}`}
+              className={`h-1.5 transition-all duration-300 rounded-full cursor-pointer ${i === currentSlide ? 'w-6 sm:w-10 bg-primary shadow-[0_0_10px_rgba(161,158,255,0.6)]' : 'w-1.5 sm:w-2 bg-white/10 hover:bg-white/20'}`}
             />
           ))}
         </div>
         <button
           onClick={nextSlide}
           disabled={currentSlide === totalSlides - 1}
-          className="size-10 rounded-full border border-white/10 flex items-center justify-center hover:bg-primary hover:text-background-dark disabled:opacity-30 disabled:pointer-events-none transition-all"
+          className="size-8 sm:size-10 rounded-full border border-white/10 flex items-center justify-center hover:bg-primary hover:text-background-dark disabled:opacity-30 disabled:pointer-events-none transition-all active:scale-90"
         >
-          <span className="material-symbols-outlined font-black">arrow_forward</span>
+          <span className="material-symbols-outlined font-black text-base sm:text-2xl">arrow_forward</span>
         </button>
-        <div className="absolute right-8 text-[10px] font-black uppercase tracking-widest text-slate-500">
+        <div className="absolute right-3 sm:right-8 text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-slate-500">
           {currentSlide + 1} / {totalSlides}
         </div>
       </div>
