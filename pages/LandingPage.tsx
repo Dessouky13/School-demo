@@ -781,7 +781,7 @@ const LandingPage: React.FC = () => {
               <div className="lg:col-span-2 presentation-card p-3 sm:p-6 rounded-xl sm:rounded-2xl anim-slide-up delay-400 flex flex-row items-center gap-3 sm:gap-6">
                 <div className="shrink-0">
                   <img
-                    src={`https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=https://www.demo.seekersai.org&bgcolor=0f172a&color=a19eff&format=png`}
+                    src={`https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=https://www.demo.seekersai.org/%23/demo&bgcolor=0f172a&color=a19eff&format=png`}
                     alt="QR Code - Try the demo"
                     className="size-20 sm:size-36 rounded-lg sm:rounded-xl border-2 border-primary/30 p-0.5 sm:p-1 bg-white"
                     loading="lazy"

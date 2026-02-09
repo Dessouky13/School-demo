@@ -2,6 +2,7 @@
 import React from 'react';
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import LandingPage from './pages/LandingPage';
+import InteractiveDemo from './pages/InteractiveDemo';
 
 const App: React.FC = () => {
   return (
@@ -10,6 +11,7 @@ const App: React.FC = () => {
         <Routes>
           <Route path="/" element={<LandingPage />} />
           <Route path="/presentation" element={<LandingPage />} />
+          <Route path="/demo" element={<InteractiveDemo />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </div>
