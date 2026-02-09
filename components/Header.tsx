@@ -1,5 +1,6 @@
 
 import React from 'react';
+import { Link } from 'react-router-dom';
 import Logo from './Logo';
 
 interface HeaderProps {
@@ -38,6 +39,13 @@ const Header: React.FC<HeaderProps> = ({ isAdmin, onMenuToggle }) => {
 
         <div className="flex items-center gap-2 md:gap-10">
           <div className="flex items-center gap-2 md:gap-6">
+            <Link
+              to="/presentation"
+              className="flex items-center gap-2 px-3 py-2 md:px-5 md:py-3 bg-primary/10 text-primary hover:bg-primary hover:text-background-dark rounded-xl md:rounded-2xl transition-all hover:scale-105 active:scale-95 border border-primary/20 hover:border-primary font-black text-xs md:text-sm uppercase tracking-widest"
+            >
+              <span className="material-symbols-outlined text-xl md:text-2xl">slideshow</span>
+              <span className="hidden sm:inline">Presentation</span>
+            </Link>
             <button className="relative p-2 md:p-4 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl md:rounded-2xl transition-all hover:scale-110 active:scale-95 border border-transparent">
               <span className="material-symbols-outlined text-2xl md:text-3xl">notifications</span>
               <span className="absolute top-2 md:top-4 right-2 md:right-4 size-2.5 md:size-3 bg-red-500 rounded-full border-2 border-white dark:border-surface-dark"></span>

@@ -9,7 +9,7 @@ interface LogoProps {
 }
 
 const Logo: React.FC<LogoProps> = ({ className = "", size = 250, showText = false, animate = false }) => {
-  const logoUrl = "https://raw.githubusercontent.com/Dessouky13/Game-ai/main/Code_Generated_Image.png";
+  const logoUrl = "https://raw.githubusercontent.com/Dessouky13/Game-ai/main/Code_Generated_Image%20(2).png";
   
   return (
     <div className={`flex flex-col items-center ${className}`}>

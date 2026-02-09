@@ -9,6 +9,7 @@ const App: React.FC = () => {
       <div className="min-h-screen bg-background-light dark:bg-background-dark overflow-x-hidden">
         <Routes>
           <Route path="/" element={<LandingPage />} />
+          <Route path="/presentation" element={<LandingPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </div>

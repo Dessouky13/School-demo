@@ -30,6 +30,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isAdmin, onLogout, isOpen, onClose })
 
   const schoolLinks: SidebarLinkItem[] = [
     { name: 'Mission Control', path: '/dashboard', icon: 'grid_view' },
+    { name: 'Presentation', path: '/presentation', icon: 'slideshow' },
     { name: 'Admissions Library', path: '/knowledge-bases', icon: 'auto_stories' },
     { name: 'Finance Agent', path: '/addons', icon: 'payments' },
     { name: 'Workflow Builder', path: '/workflows/new', icon: 'account_tree' },
