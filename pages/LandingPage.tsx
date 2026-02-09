@@ -294,7 +294,7 @@ const LandingPage: React.FC = () => {
     }, 200);
 
     try {
-      await fetch('https://n8n.srv1131703.hstgr.cloud/webhook/agentic-idea-submit', {
+      await fetch('https://n8n.srv1131703.hstgr.cloud/webhook/381845cd-f34b-4498-84d0-3118a6e8569d', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ idea: dreamIdea, sessionId: 'agentic-builder-session', timestamp: new Date().toISOString(), source: 'presentation-demo' }),
